@@ -17,4 +17,3 @@ $(TARGETS):main.o carrot.o
 
 clean:
 	$(RM) $(TARGETS) *.o *.exe *.pb.h *.pb.cc
-
