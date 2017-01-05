@@ -14,7 +14,12 @@ int main(int argc, char* argv[])
         return -1;
     }
     
-    carrot.Run();
+    Ret = carrot.Run();
+    if(Ret != 0)
+    {
+        printf("Run failed, Ret=%d\n", Ret);
+        return -1;
+    }
 
     carrot.Finish();
     

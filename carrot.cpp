@@ -1,9 +1,7 @@
 
+#include "gzip.h"
 #include "carrot.h" 
 #include "config.h"
-
-
-using namespace std;
 
 static size_t OnHeaderData(void* buffer, size_t size, size_t nmemb, void* lpVoid)
 {
@@ -90,6 +88,12 @@ static string strip(const string& str, const char c = ' ')
     {
         return str;
     }
+
+    if(str.length() == 1)
+    {
+        return string();
+    }
+
     string::size_type pos2 = str.find_last_not_of(c);
     if (pos2 != string::npos)
     {
@@ -115,24 +119,60 @@ void parser_ptuicb(const string& str, vector<string>& vct)
     }
 }
 
-static int Callback4Default(CCarrot* p, const string& strHeader, const string& strResult)
+inline int Callback4Default(CCarrot* p, const string& strHeader, const string& strResult)
 {
-    printf("strHeader=%s\n", strHeader.c_str());
-    printf("strResult=%s\n", strResult.c_str());
+    //printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+    //printf("strHeader=%s\n", strHeader.c_str());
+    //printf("strResult=%s\n", strResult.c_str());
+    //printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+    
+    int HttpStatus = p->GetHttpStatus();
+    if(HttpStatus != 200 and HttpStatus != 302)
+    {
+        printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+        printf("Http Status is illeage, %d\n", HttpStatus);
+        printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+        return -1;
+    }
+    
     return 0;
 }
 
 
-static int Callback4VerifyLogin(CCarrot* p, const string& strHeader, const string& strResult)
+inline int Callback4VerifyLogin(CCarrot* p, const string& strHeader, const string& strResult)
 {
-    printf("strHeader=%s\n", strHeader.c_str());
-    printf("strResult=%s\n", strResult.c_str());
+    //printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+    //printf("strHeader=%s\n", strHeader.c_str());
+    //printf("strResult=%s\n", strResult.c_str());
+    //printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+    
+    int HttpStatus = p->GetHttpStatus();
+    if(HttpStatus != 200)
+    {
+        printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+        printf("Http Status is illeage, %d\n", HttpStatus);
+        printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+        return -1;
+    }
+    
     return 0;
 }
 
-static int Callback4GetScanState(CCarrot* p, const string& strHeader, const string& strResult)
+inline int Callback4GetScanState(CCarrot* p, const string& strHeader, const string& strResult)
 {
-    //printf("%s\n", strResult.c_str());
+    //printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+    //printf("strHeader=%s\n", strHeader.c_str());
+    //printf("strResult=%s\n", strResult.c_str());
+    //printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+
+    int HttpStatus = p->GetHttpStatus();
+    if(HttpStatus != 200)
+    {
+        printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+        printf("Http Status is illeage, %d\n", HttpStatus);
+        printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+        return -1;
+    }
 
     vector<string> vct;
     parser_ptuicb(strResult, vct);
@@ -140,7 +180,7 @@ static int Callback4GetScanState(CCarrot* p, const string& strHeader, const stri
     if(vct[0] == "0")
     {
         //登录成功
-        p->SetUrl(vct[2]);
+        p->m_strUrl = vct[2];
         return 0;
     }
     else if(vct[0] == "65")
@@ -165,6 +205,67 @@ static int Callback4GetScanState(CCarrot* p, const string& strHeader, const stri
 
     return -1;
 }
+
+inline int Callback4FetchCookieVF(CCarrot* p, const string& strHeader, const string& strResult)
+{
+    printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+    printf("strHeader=%s\n", strHeader.c_str());
+    printf("strResult=%s\n", strResult.c_str());
+    printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+
+    int HttpStatus = p->GetHttpStatus();
+    if(HttpStatus != 200)
+    {
+        printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+        printf("Http Status is illeage, %d\n", HttpStatus);
+        printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+        return -1;
+    }
+    
+    Json::Reader reader;
+    Json::Value root;
+    if (!reader.parse(strResult, root, false))
+    {
+        printf("json parse failed\n");
+        return -1;
+    }
+
+    p->m_mapCookie["vfwebqq"] = root["result"]["vfwebqq"].asString();
+    
+    return 0;
+}
+
+inline int Callback4FetchCookiePN(CCarrot* p, const string& strHeader, const string& strResult)
+{
+    //printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+    //printf("strHeader=%s\n", strHeader.c_str());
+    //printf("strResult=%s\n", strResult.c_str());
+    //printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+    char buff[10240] = {0};
+    CGzip::gzip_uncompress(strResult.c_str(), strResult.size(), buff, sizeof(buff));
+    printf("*******************************\n");
+    printf("strResult=%s\n", buff);
+    
+    int HttpStatus = p->GetHttpStatus();
+    if(HttpStatus != 200)
+    {
+        printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+        printf("Http Status is illeage, %d\n", HttpStatus);
+        printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+        return -1;
+    }
+
+    Json::Reader reader;
+    Json::Value root;
+    if (!reader.parse(buff, root, false))
+    {
+        printf("json parse failed\n");
+        return -1;
+    }
+    
+    return 0;
+}
+
 
 CCarrot::CCarrot()
 {
@@ -233,7 +334,7 @@ int CCarrot::Get(const char* pUrl, const map<string,string>& mapParam, fnc_callb
         }
     }
 
-    printf("url=%s\n", strUrl.c_str());
+    //printf("url=%s\n", strUrl.c_str());
     
     CURLcode CURLRet = CURLE_OK;
     
@@ -336,7 +437,7 @@ int CCarrot::Post(const char* pUrl, const map<string,string>& mapParam, fnc_call
     }
     
     //设置POST参数
-    string strUrl = pUrl;
+    string strUrl;
     map<string,string>::const_iterator iter = mapParam.begin();
     while(iter != mapParam.end())
     {
@@ -353,6 +454,9 @@ int CCarrot::Post(const char* pUrl, const map<string,string>& mapParam, fnc_call
             break;
         }
     }
+
+    //char buff[10240] = {0};
+    //CGzip::gzip_compress(strUrl.c_str(), strUrl.size(), buff, sizeof(buff));
     curl_easy_setopt(m_handle, CURLOPT_POSTFIELDS, strUrl.c_str()); 
     
     //一旦接收到http 头部数据后将调用该函数
@@ -363,7 +467,7 @@ int CCarrot::Post(const char* pUrl, const map<string,string>& mapParam, fnc_call
 
     //需要读取数据传递给远程主机时将调用
     //函原型:size_t function(void *ptr, size_t size, size_t nmemb,void *stream).
-    curl_easy_setopt(m_handle, CURLOPT_READFUNCTION, NULL);
+    curl_easy_setopt(m_handle, CURLOPT_READFUNCTION, OnReadData);
     //CURLOPT_READFUNCTION函数中的stream指针的来源
     curl_easy_setopt(m_handle, CURLOPT_READDATA, (void *)&strReadRsp);
         
@@ -545,11 +649,13 @@ void CCarrot::SetHttpCookie()
         SEP "foo"       //Name
         SEP "bar";       //Value
         */
-        printf("%s\n", iter->second.c_str());
-        curl_easy_setopt(m_handle, CURLOPT_COOKIELIST, iter->second.c_str());
+        printf("\t%s=%s\n", iter->first.c_str(), iter->second.c_str());
+        //curl_easy_setopt(m_handle, CURLOPT_COOKIELIST, iter->second.c_str());
 
         //buff格式:key=value
-        //curl_easy_setopt(m_handle, CURLOPT_COOKIE, buff);
+        char buff[1024] = {0};
+        snprintf(buff, sizeof(buff), "%s=%s", iter->first.c_str(), iter->second.c_str());
+        curl_easy_setopt(m_handle, CURLOPT_COOKIE, buff);
     }
 
     //会使curl下一次发请求时从指定的文件中读取cookie
@@ -576,18 +682,19 @@ void CCarrot::SaveHttpCookie()
     nc = cookies;
     while(nc)
     {
-        if(nc->data[0] == '#')
+        string str = strip(nc->data);
+        if(str[0] == '#')
         {
             nc = nc->next;
             continue;
         }
         
         vector<string> result;
-        split(nc->data, result, "\t");
+        split(str, result, "\t");
         if(result.size() == 7)
         {
-            m_mapCookie[strip(result[5])] = nc->data;
-            printf("%s\n", nc->data);
+            m_mapCookie[result[5]] = result[6];
+            printf("\t%s=%s\n", result[5].c_str(), result[6].c_str());
         }
         else if(result.size() == 6)
         {
@@ -742,10 +849,32 @@ int CCarrot::FetchCookieVF()
     mapParam["psessionid"] = "";
     mapParam["t"] = "0.1";
     
-    Get(WEBQQ_VERIFY, mapParam, Callback4Default, REFERER_VF);
+    int Ret = Get(WEBQQ_VERIFY, mapParam, Callback4FetchCookieVF, REFERER_VF);
     
     printf("FetchCookieVF end ...\n");
-    return 0;
+    
+    return Ret;
+}
+
+int CCarrot::FetchCookiePN()
+{
+    printf("FetchCookiePN begin ...\n");
+
+    Json::Value req;
+    Json::FastWriter writer;
+    req["ptwebqq"] = m_mapCookie["ptwebqq"];
+    req["clientid"] = "53999199";
+    req["psessionid"] = "";
+    req["status"] = "online";
+    
+    map<string, string> mapParam;
+    mapParam["r"] =  writer.write(req);
+    
+    int Ret = Post(FETCH_PN, mapParam, Callback4FetchCookiePN, REFERER_PN);
+    
+    printf("FetchCookiePN end ...\n");
+    
+    return Ret;
 }
 
 int CCarrot::ParserCookieFile()
@@ -763,17 +892,18 @@ int CCarrot::ParserCookieFile()
         char buff[10240] = {0};
         if(fgets(buff, sizeof(buff), cookiefile))
         {
-            if(strip(buff)[0] == '#' or strip(buff)[0] == '\n')
+            string str = strip(strip(buff), '\n');
+            if(str.empty() or str[0] == '#')
             {
                 continue;
             }
             
             vector<string> result;
-            split(strip(buff), result, "\t");
+            split(str, result, "\t");
             if(result.size() == 7)
             {
-                m_mapCookie[strip(result[5], '\n')] = strip(buff, '\n');
-                printf("%s\n", strip(buff, '\n').c_str());
+                m_mapCookie[result[5]] = result[6];
+                printf("\t%s=%s\n", result[5].c_str(), result[6].c_str());
             }
             else if(result.size() == 6)
             {
@@ -781,7 +911,7 @@ int CCarrot::ParserCookieFile()
             }
             else
             {
-                printf("cookie len is invalid:\n\t%s\n", strip(buff, '\n').c_str());
+                printf("cookie len is invalid:\n\t%s\n", str.c_str());
                 return -1;
             }
         }
@@ -796,6 +926,23 @@ int CCarrot::ParserCookieFile()
     return 0;
 }
 
+int CCarrot::GetHttpStatus()
+{
+    int HttpStatus;
+    CURLcode CURLRet = CURLE_OK;
+    
+    CURLRet = curl_easy_getinfo(m_handle, CURLINFO_RESPONSE_CODE, &HttpStatus);            //获取cookielist信息
+    if( CURLRet != CURLE_OK)
+    {
+       printf("get cookie info failed\n");
+       return -1;
+    }
+
+    //printf("HttpStatus=%d\n", HttpStatus);
+
+    return HttpStatus;
+}
+
 int CCarrot::Run()
 {
     //加载本地cookie文件
@@ -807,15 +954,47 @@ int CCarrot::Run()
     //登录
     while(!VerifyLogin())
     {
-        GetQR();
-        GetScanState();
-        FetchCookiePT();
-        FetchCookieVF();
+        int Ret = 0;
+        Ret = GetQR();
+        if(Ret != 0)
+        {
+            printf("GetQR failed, Ret=%d\n", Ret);
+            continue;
+        }
+        
+        Ret = GetScanState();
+        if(Ret != 0)
+        {
+            printf("GetScanState failed, Ret=%d\n", Ret);
+            continue;
+        }
+        
+        Ret = FetchCookiePT();
+        if(Ret != 0)
+        {
+            printf("FetchCookiePT failed, Ret=%d\n", Ret);
+            continue;
+        }
+        
+        Ret = FetchCookieVF();
+        if(Ret != 0)
+        {
+            printf("FetchCookieVF failed, Ret=%d\n", Ret);
+            continue;
+        }
+
+        Ret = FetchCookiePN();
+        if(Ret != 0)
+        {
+            printf("FetchCookiePN failed, Ret=%d\n", Ret);
+            continue;
+        }
+
         map<string,string>::iterator iter = m_mapCookie.begin();
         printf("------------\n");
         for(; iter != m_mapCookie.end(); iter++)
         {
-            printf("%s\n", iter->second.c_str());
+            printf("%s=%s\n", iter->first.c_str(), iter->second.c_str());
         }
         printf("------------\n");
         
@@ -827,10 +1006,6 @@ int CCarrot::Run()
     return 0;
 }
 
-void CCarrot::SetUrl(const string& str)
-{
-    m_strUrl = str;
-}
 
 bool CCarrot::CreateSession()
 {
