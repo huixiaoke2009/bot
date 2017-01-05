@@ -98,24 +98,81 @@ static string strip(const string& str, const char c = ' ')
     return str.substr(pos);
 }
 
-static int Callback4VerifyLogin(const string& strHeader, const string& strResult)
+void parser_ptuicb(const string& str, vector<string>& vct)
+{
+    string str2 = strip(strip(str, '\n'));
+    
+    if(str.substr(0, 6) != "ptuiCB")
+    {
+        vct.push_back(str2);
+    }
+
+    string str3 = str2.substr(7, str2.length()-10);
+    split(str3, vct, ",");
+    for(unsigned int i = 0; i < vct.size(); i++)
+    {
+        vct[i] = strip(vct[i], '\'');
+    }
+}
+
+static int Callback4Default(CCarrot* p, const string& strHeader, const string& strResult)
 {
     printf("strHeader=%s\n", strHeader.c_str());
     printf("strResult=%s\n", strResult.c_str());
     return 0;
 }
 
-static int Callback4GetScanState(const string& strHeader, const string& strResult)
+
+static int Callback4VerifyLogin(CCarrot* p, const string& strHeader, const string& strResult)
 {
     printf("strHeader=%s\n", strHeader.c_str());
     printf("strResult=%s\n", strResult.c_str());
     return 0;
+}
+
+static int Callback4GetScanState(CCarrot* p, const string& strHeader, const string& strResult)
+{
+    //printf("%s\n", strResult.c_str());
+
+    vector<string> vct;
+    parser_ptuicb(strResult, vct);
+
+    if(vct[0] == "0")
+    {
+        //登录成功
+        p->SetUrl(vct[2]);
+        return 0;
+    }
+    else if(vct[0] == "65")
+    {
+        //二维码已失效
+        return 1;
+    }
+    else if(vct[0] == "66")
+    {
+        //二维码未失效
+        return 2;
+    }
+    else if(vct[0] == "67")
+    {
+        //二维码认证中
+        return 3;
+    }
+    else
+    {
+        return -1;
+    }
+
+    return -1;
 }
 
 CCarrot::CCarrot()
 {
+    m_handle = NULL;
+    m_pHeaders = NULL;
     m_UserID = 0;
     m_LoginStatus = 0;
+    m_bKeepAlive = true;
 }
 
 CCarrot::~CCarrot()
@@ -139,8 +196,8 @@ int CCarrot::Init()
     
     printf("libcur初始化成功，版本信息为:%s\n", curl_version());
     
-    printf("Init success\n");
-    
+    printf("Init success, m_bKeepAlive=%d\n", m_bKeepAlive);
+
     return 0;
 }
 
@@ -148,11 +205,8 @@ int CCarrot::Get(const char* pUrl, const map<string,string>& mapParam, fnc_callb
 {
     printf("Get begin ...\n");
     
-    //启用一个会话
-    m_handle = curl_easy_init();
-    if(m_handle == NULL)
+    if(!CreateSession())
     {
-        printf("curl_easy_init failed\n");
         return -1;
     }
     
@@ -178,7 +232,7 @@ int CCarrot::Get(const char* pUrl, const map<string,string>& mapParam, fnc_callb
             break;
         }
     }
-    
+
     printf("url=%s\n", strUrl.c_str());
     
     CURLcode CURLRet = CURLE_OK;
@@ -189,10 +243,15 @@ int CCarrot::Get(const char* pUrl, const map<string,string>& mapParam, fnc_callb
     
     //设置url
     curl_easy_setopt(m_handle, CURLOPT_URL, strUrl.c_str());
-    
+
     //设置http头部信息
-    struct curl_slist* pHeaders = SetHttpHeader(pRerfer);
-    curl_easy_setopt(m_handle, CURLOPT_HTTPHEADER, pHeaders);
+    SetHttpHeader();
+    
+    //设置referer
+    if(pRerfer)
+    {
+        curl_easy_setopt(m_handle, CURLOPT_REFERER, pRerfer);
+    }
     
     //一旦接收到http 头部数据后将调用该函数
     //函原型:size_t function(void *ptr, size_t size, size_t nmemb, void *stream); 
@@ -228,14 +287,17 @@ int CCarrot::Get(const char* pUrl, const map<string,string>& mapParam, fnc_callb
         printf("curl_easy_perform failed, %s\n", curl_easy_strerror(CURLRet));
         return -1;
     }
-    
+
     //保存cookie
     SaveHttpCookie();
 
-    //关闭一个会话
-    curl_easy_cleanup(m_handle);
-    
-    int Ret = func(strHeaderRsp, strWriteRsp);
+    FinishSession();
+
+    int Ret = 0;
+    if(func)
+    {
+        Ret = func(this, strHeaderRsp, strWriteRsp);
+    }
     
     printf("Get end ...\n");
     
@@ -243,15 +305,12 @@ int CCarrot::Get(const char* pUrl, const map<string,string>& mapParam, fnc_callb
 }
 
 
-int CCarrot::Post(const char* pUrl, fnc_callback_t func, const char* pRerfer)
+int CCarrot::Post(const char* pUrl, const map<string,string>& mapParam, fnc_callback_t func, const char* pRerfer)
 {
     printf("Post begin ...\n");
     
-    //启用一个会话
-    m_handle = curl_easy_init();
-    if(m_handle == NULL)
+    if(!CreateSession())
     {
-        printf("curl_easy_init failed\n");
         return -1;
     }
     
@@ -268,16 +327,33 @@ int CCarrot::Post(const char* pUrl, fnc_callback_t func, const char* pRerfer)
     curl_easy_setopt(m_handle, CURLOPT_POST, 1);
     
     //设置http头部信息
-    struct curl_slist* pHeaders = SetHttpHeader(pRerfer);
-    curl_easy_setopt(m_handle, CURLOPT_HTTPHEADER, pHeaders);
+    SetHttpHeader();
+
+    //设置referer
+    if(pRerfer)
+    {
+        curl_easy_setopt(m_handle, CURLOPT_REFERER, pRerfer);
+    }
     
     //设置POST参数
-    //"wd=hava&hehe=123456"
-    //VER=1.1&CMD=Login&SEQ=&UIN=&PS=&M5=1&LC=9326B87B234E7235
-    char PostBuff[1024] = {0};
-    //snprintf(PostBuff, sizeof(PostBuff), "%s=%ld&%s=%s", "userid", m_UserID, "passwd", m_strPasswd.c_str());
-    snprintf(PostBuff, sizeof(PostBuff), "VER=1.1&CMD=Login&SEQ=%ld&UIN=%ld&PS=%s&M5=1&LC=9326B87B234E7235",time(NULL),m_UserID,m_strPasswd.c_str());
-    curl_easy_setopt(m_handle, CURLOPT_POSTFIELDS, PostBuff); 
+    string strUrl = pUrl;
+    map<string,string>::const_iterator iter = mapParam.begin();
+    while(iter != mapParam.end())
+    {
+        char tmp[1024] = {0};
+        snprintf(tmp, sizeof(tmp), "%s=%s", iter->first.c_str(), iter->second.c_str());
+        strUrl.append(tmp);
+        iter++;
+        if(iter != mapParam.end())
+        {
+            strUrl.append("&");
+        }
+        else
+        {
+            break;
+        }
+    }
+    curl_easy_setopt(m_handle, CURLOPT_POSTFIELDS, strUrl.c_str()); 
     
     //一旦接收到http 头部数据后将调用该函数
     //函原型:size_t function(void *ptr, size_t size, size_t nmemb, void *stream); 
@@ -318,10 +394,13 @@ int CCarrot::Post(const char* pUrl, fnc_callback_t func, const char* pRerfer)
     //保存cookie
     SaveHttpCookie();
     
-    //关闭一个会话
-    curl_easy_cleanup(m_handle);
-    
-    int Ret = func(strHeaderRsp, strWriteRsp);
+    FinishSession();
+
+    int Ret = 0;
+    if(func)
+    {
+        Ret = func(this, strHeaderRsp, strWriteRsp);
+    }
     
     printf("Post end ...\n");
     
@@ -332,15 +411,12 @@ int CCarrot::Download2File(const char* pUrl, const char* file_path, const map<st
 {
     printf("Download2File begin ...\n");
     
-    //启用一个会话
-    m_handle = curl_easy_init();
-    if(m_handle == NULL)
+    if(!CreateSession())
     {
-        printf("curl_easy_init failed\n");
         return -1;
     }
     
-    FILE* outfile = fopen(file_path, "w+");
+    FILE* outfile = fopen(file_path, "w");
     if(outfile == NULL)
     {
         printf("open file %s failed\n", file_path);
@@ -370,20 +446,16 @@ int CCarrot::Download2File(const char* pUrl, const char* file_path, const map<st
         }
     }
     
-    printf("url=%s\n", strUrl.c_str());
-    printf("file_path=%s\n", file_path);
-    
     CURLcode CURLRet = CURLE_OK;
     
     string strHeaderRsp;
     string strReadRsp;
     
     //设置url
-    curl_easy_setopt(m_handle, CURLOPT_URL, pUrl);
+    curl_easy_setopt(m_handle, CURLOPT_URL, strUrl.c_str());
     
     //设置http头部信息
-    struct curl_slist* pHeaders = SetHttpHeader();
-    curl_easy_setopt(m_handle, CURLOPT_HTTPHEADER, pHeaders);
+    SetHttpHeader();
     
     //一旦接收到http 头部数据后将调用该函数
     //函原型:size_t function(void *ptr, size_t size, size_t nmemb, void *stream); 
@@ -427,29 +499,25 @@ int CCarrot::Download2File(const char* pUrl, const char* file_path, const map<st
     //保存cookie
     SaveHttpCookie();
     
-    //关闭一个会话
-    curl_easy_cleanup(m_handle);
+    FinishSession();
     
     printf("Download2File end ...\n");
     
     return 0;
 }
 
-struct curl_slist* CCarrot::SetHttpHeader(const char* pRerfer)
+void CCarrot::SetHttpHeader()
 {
-    struct curl_slist* pHeaders = NULL;
-    pHeaders = curl_slist_append(pHeaders, "Accept:application/json");
-    pHeaders = curl_slist_append(pHeaders, "Content-Type:text/html");
-    pHeaders = curl_slist_append(pHeaders, "charset:utf-8");
-    pHeaders = curl_slist_append(pHeaders, "User-Agent:Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2743.82 Safari/537.36");
-    if(pRerfer)
-    {
-        char buff[10240] = {0};
-        snprintf(buff, sizeof(buff), "Referer:%s", pRerfer);
-        pHeaders = curl_slist_append(pHeaders, buff);
-    }
+    printf("SetHttpHeader begin ...\n");
+
+    m_pHeaders = curl_slist_append(m_pHeaders, "Accept-Language: zh-CN,zh;q=0.8");
+    m_pHeaders = curl_slist_append(m_pHeaders, "Accept-Encoding: gzip, deflate, sdch, br");
+    m_pHeaders = curl_slist_append(m_pHeaders, "Accept: */*");
+    m_pHeaders = curl_slist_append(m_pHeaders, "Connection: Keep-Alive");  
+    m_pHeaders = curl_slist_append(m_pHeaders, "User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.71 Safari/537.36");
+    curl_easy_setopt(m_handle, CURLOPT_HTTPHEADER, m_pHeaders);
     
-    return pHeaders;
+    printf("SetHttpHeader end ...\n");
 }
 
 void CCarrot::SetHttpCookie()
@@ -458,30 +526,35 @@ void CCarrot::SetHttpCookie()
     
     CURLcode CURLRet = CURLE_OK;
 
-    //会使curl下一次发请求时从指定的文件中读取cookie
-    //CURLRet = curl_easy_setopt(m_handle, CURLOPT_COOKIEFILE, COOKIEPATH);
-
     //会使curl在调用curl_easy_cleanup的时候把cookie保存到指定的文件中
+    //m_bKeepAlive为true的话，这里相当于没用，仅激活cookie功能
     CURLRet = curl_easy_setopt(m_handle, CURLOPT_COOKIEJAR, COOKIEPATH);
-    if(CURLRet != CURLE_OK)
-    {
-        printf("curl_easy_perform failed, %s\n", curl_easy_strerror(CURLRet));
-    }
-    
+
     map<string,string>::iterator iter = m_mapCookie.begin();
     for(; iter != m_mapCookie.end(); iter++)
     {
-        char buff[2048] = {0};
-        snprintf(buff, sizeof(buff), "%s=%s", iter->first.c_str(), iter->second.c_str());
-        curl_easy_setopt(m_handle, CURLOPT_COOKIE, buff);
+        //会把指定的cookie字符串列表加入easy handle维护的cookie列表中
+        /*
+        #define SEP  "\t"  // Tab separates the fields
+        char *my_cookie =
+        "example.com"    //Hostname
+        SEP "FALSE"      //Include subdomains
+        SEP "/"          //Path
+        SEP "FALSE"      //Secure
+        SEP "0"          //Expiry in epoch time format. 0 == Session 
+        SEP "foo"       //Name
+        SEP "bar";       //Value
+        */
+        printf("%s\n", iter->second.c_str());
+        curl_easy_setopt(m_handle, CURLOPT_COOKIELIST, iter->second.c_str());
+
+        //buff格式:key=value
+        //curl_easy_setopt(m_handle, CURLOPT_COOKIE, buff);
     }
-    
-    
-    //会把指定的cookie字符串列表加入easy handle维护的cookie列表中(相当于curl_easy_cleanup之前一直有效)
-    //curl_easy_setopt(m_handle, CURLOPT_COOKIELIST, "a=b;c=d");
-    
-    //用于设置一个分号分隔的“NAME=VALUE”列表，用于在HTTP request header中设置Cookie header。
-    //curl_easy_setopt(m_handle, CURLOPT_COOKIE, "a=b");
+
+    //会使curl下一次发请求时从指定的文件中读取cookie
+    //CURLRet = curl_easy_setopt(m_handle, CURLOPT_COOKIEFILE, COOKIEPATH);
+ 
     printf("SetHttpCookie end ...\n");
 }
 
@@ -503,15 +576,26 @@ void CCarrot::SaveHttpCookie()
     nc = cookies;
     while(nc)
     {
+        if(nc->data[0] == '#')
+        {
+            nc = nc->next;
+            continue;
+        }
+        
         vector<string> result;
         split(nc->data, result, "\t");
         if(result.size() == 7)
         {
-            m_mapCookie[strip(result[5])] = strip(result[6]);
+            m_mapCookie[strip(result[5])] = nc->data;
+            printf("%s\n", nc->data);
+        }
+        else if(result.size() == 6)
+        {
+            
         }
         else
         {
-            printf("cookie len is invalid\n");
+            printf("cookie len is invalid:\n\t%s\n", nc->data);
         }
         
         nc = nc->next;
@@ -528,13 +612,14 @@ int CCarrot::GetQR()
     
     //获取二维码
     map<string,string> mapParam;
+    
     mapParam["appid"] = "501004106";
     mapParam["e"] = "0";
     mapParam["l"] = "M";
     mapParam["s"] = "5";
     mapParam["d"] = "72";
     mapParam["v"] = "4";
-    mapParam["t"] = "0.1";
+    mapParam["t"] = "0.5689602857912557";
     
     int Ret = Download2File(GET_QR, QRPATH, mapParam);
     
@@ -555,9 +640,10 @@ bool CCarrot::VerifyLogin()
         mapParam["clientid"] = "53999199";
         mapParam["psessionid"] = m_mapCookie["psessionid"];
         mapParam["t"] = m_mapCookie["0.1"];
+        
         if(Get(GET_ONLINE, mapParam, Callback4VerifyLogin, REFERER_OL))
         {
-            return true;
+            flag = true;
         }
     }
     else
@@ -572,11 +658,14 @@ bool CCarrot::VerifyLogin()
 
 int CCarrot::GetScanState()
 {
+    printf("GetScanState end ...\n");
+    
     map<string,string> mapParam;
+    
     mapParam["webqq_type"] = "10";
     mapParam["remember_uin"] = "1";
     mapParam["login2qq"] = "1";
-    mapParam["aid"] = "501004106";
+    mapParam["appid"] = "501004106";
     mapParam["u1"] = "http://w.qq.com/proxy.html?login2qq=1&webqq_type=10";
     mapParam["ptredirect"] = "0";
     mapParam["ptlang"] = "2052";
@@ -585,27 +674,83 @@ int CCarrot::GetScanState()
     mapParam["pttype"] = "1";
     mapParam["dumy"] = "";
     mapParam["fp"] = "loginerroralert";
-    mapParam["action"] = "0-0-157510";
+    mapParam["action"] = "0-0-4045";
     mapParam["mibao_css"] = "m_webqq";
-    mapParam["t"] = "1";
+    mapParam["t"] = "undefined";
     mapParam["g"] = "1";
     mapParam["js_type"] = "0";
-    mapParam["js_ver"] = "10143";
+    mapParam["js_ver"] = "10191";
     mapParam["login_sig"] = "";
     mapParam["pt_randsalt"] = "0";
     
-    //while(true)
+    while(true)
     {
         sleep(2);
-        
-        Get(SCAN_STATE, mapParam, Callback4GetScanState, SCAN_STATE_REFERER);
+        int Status = Get(SCAN_STATE, mapParam, Callback4GetScanState, SCAN_STATE_REFERER);
+        if(Status == 0)
+        {
+            printf("Login processing...\n");
+            break;
+        }
+        else if(Status == 1)
+        {
+            printf("QR expired, downloading it again...\n");
+            GetQR();
+        }
+        else if(Status == 2)
+        {
+            printf("Please scan the QR code...\n");
+        }
+        else if(Status == 3)
+        {
+            printf("Auth ing...\n");
+        }
+        else
+        {
+            printf("HTTP request error...retrying...\n");
+        }
+    }
+
+    printf("GetScanState end ...\n");
+    
+    return 0;
+}
+
+int CCarrot::FetchCookiePT()
+{
+    printf("FetchCookiePT begin ...\n");
+    map<string, string> mapParam;
+    Get(m_strUrl.c_str(), mapParam, Callback4Default, REFERER_PT);
+    printf("FetchCookiePT end ...\n");
+    return 0;
+}
+
+int CCarrot::FetchCookieVF()
+{
+    printf("FetchCookieVF begin ...\n");
+
+    //删除cookie中的qrsig
+    map<string, string>::iterator iter = m_mapCookie.find("qrsig");
+    if(iter != m_mapCookie.end())
+    {
+        m_mapCookie.erase(iter);
     }
     
+    map<string, string> mapParam;
+    mapParam["ptwebqq"] = m_mapCookie["ptwebqq"];
+    mapParam["clientid"] = "53999199";
+    mapParam["psessionid"] = "";
+    mapParam["t"] = "0.1";
+    
+    Get(WEBQQ_VERIFY, mapParam, Callback4Default, REFERER_VF);
+    
+    printf("FetchCookieVF end ...\n");
     return 0;
 }
 
 int CCarrot::ParserCookieFile()
 {
+    printf("ParserCookieFile begin ...\n");
     FILE* cookiefile = fopen(COOKIEPATH, "r");
     if(cookiefile == NULL)
     {
@@ -627,11 +772,16 @@ int CCarrot::ParserCookieFile()
             split(strip(buff), result, "\t");
             if(result.size() == 7)
             {
-                m_mapCookie[strip(result[5], '\n')] = strip(result[6], '\n');
+                m_mapCookie[strip(result[5], '\n')] = strip(buff, '\n');
+                printf("%s\n", strip(buff, '\n').c_str());
+            }
+            else if(result.size() == 6)
+            {
+
             }
             else
             {
-                printf("cookie len is invalid\n");
+                printf("cookie len is invalid:\n\t%s\n", strip(buff, '\n').c_str());
                 return -1;
             }
         }
@@ -640,6 +790,8 @@ int CCarrot::ParserCookieFile()
             break;
         }
     }
+
+    printf("ParserCookieFile end ...\n");
     
     return 0;
 }
@@ -657,6 +809,17 @@ int CCarrot::Run()
     {
         GetQR();
         GetScanState();
+        FetchCookiePT();
+        FetchCookieVF();
+        map<string,string>::iterator iter = m_mapCookie.begin();
+        printf("------------\n");
+        for(; iter != m_mapCookie.end(); iter++)
+        {
+            printf("%s\n", iter->second.c_str());
+        }
+        printf("------------\n");
+        
+        break;
     }
     
     //判断登录状态
@@ -664,9 +827,80 @@ int CCarrot::Run()
     return 0;
 }
 
+void CCarrot::SetUrl(const string& str)
+{
+    m_strUrl = str;
+}
+
+bool CCarrot::CreateSession()
+{
+    if(m_pHeaders != NULL)
+    {
+        curl_slist_free_all(m_pHeaders);
+        m_pHeaders = NULL;
+    }
+    
+    if(m_handle == NULL)
+    {
+        //启用一个会话
+        m_handle = curl_easy_init();
+        if(m_handle == NULL)
+        {
+            printf("curl_easy_init failed\n");
+            return false;
+        }
+    }
+    else
+    {
+        if(!m_bKeepAlive)
+        {
+            //关闭一个会话
+            if(m_handle != NULL)
+            {
+                curl_easy_cleanup(m_handle);
+                m_handle = NULL;
+            }
+
+            //启用一个会话
+            m_handle = curl_easy_init();
+            if(m_handle == NULL)
+            {
+                printf("curl_easy_init failed\n");
+                return false;
+            }
+        }
+    }
+    
+
+    return true;
+}
+
+
+void CCarrot::FinishSession()
+{
+    //清理头部结构
+    if(m_pHeaders)
+    {
+        curl_slist_free_all(m_pHeaders);
+        m_pHeaders = NULL;
+    }
+    
+    if(!m_bKeepAlive)
+    {
+        //关闭一个会话
+        if(m_handle)
+        {
+            curl_easy_cleanup(m_handle);
+            m_handle = NULL;
+        }
+    }
+}
 
 void CCarrot::Finish()
 {
     //全局清理
     curl_global_cleanup();
 }
+
+
+

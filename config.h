@@ -5,8 +5,9 @@
 // smart api 接口
 const char* GET_QR = "https://ssl.ptlogin2.qq.com/ptqrshow";
 const char* SCAN_STATE = "https://ssl.ptlogin2.qq.com/ptqrlogin";
-const char* SCAN_STATE_REFERER = "https://ui.ptlogin2.qq.com/cgi-bin/login?daid=164&target=self&style=16&mibao_css=m_webqq&appid=501004106&enable_qlogin=0&no_verifyimg=1&s_url=http%3A%2F%2Fw.qq.com%2Fproxy.html&f_url=loginerroralert&strong_login=1&login_state=10&t=20131024001";
+const char* SCAN_STATE_REFERER = "https://ui.ptlogin2.qq.com/cgi-bin/login?daid=164&target=self&style=16&mibao_css=m_webqq&appid=501004106&enable_qlogin=0&no_verifyimg=1&s_url=http://w.qq.com/proxy.html&f_url=loginerroralert&strong_login=1&login_state=10&t=20131024001";
 const char* REFERER_PT = "http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1";
+const char* WEBQQ_VERIFY = "http://s.web2.qq.com/api/getvfwebqq";
 const char* REFERER_VF = "http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1";
 const char* FETCH_PN = "http://d1.web2.qq.com/channel/login2";
 const char* REFERER_PN = "http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2";
