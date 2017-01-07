@@ -1,5 +1,4 @@
 
-#include "gzip.h"
 #include "carrot.h" 
 #include "config.h"
 
@@ -119,19 +118,76 @@ void parser_ptuicb(const string& str, vector<string>& vct)
     }
 }
 
+unsigned char ToHex(unsigned char x)   
+{   
+    return  x > 9 ? x + 55 : x + 48;   
+}  
+  
+unsigned char FromHex(unsigned char x)   
+{   
+    unsigned char y;  
+    if (x >= 'A' && x <= 'Z') y = x - 'A' + 10;  
+    else if (x >= 'a' && x <= 'z') y = x - 'a' + 10;  
+    else if (x >= '0' && x <= '9') y = x - '0';  
+    return y;  
+}  
+  
+std::string UrlEncode(const std::string& str)  
+{  
+    std::string strTemp = "";  
+    size_t length = str.length();  
+    for (size_t i = 0; i < length; i++)  
+    {  
+        if (isalnum((unsigned char)str[i]) ||   
+            (str[i] == '-') ||  
+            (str[i] == '_') ||   
+            (str[i] == '.') ||   
+            (str[i] == '~'))  
+            strTemp += str[i];  
+        else if (str[i] == ' ')  
+            strTemp += "+";  
+        else  
+        {  
+            strTemp += '%';  
+            strTemp += ToHex((unsigned char)str[i] >> 4);  
+            strTemp += ToHex((unsigned char)str[i] % 16);  
+        }  
+    }  
+    return strTemp;  
+}  
+  
+std::string UrlDecode(const std::string& str)  
+{  
+    std::string strTemp = "";  
+    size_t length = str.length();  
+    for (size_t i = 0; i < length; i++)  
+    {  
+        if (str[i] == '+') strTemp += ' ';  
+        else if (str[i] == '%')  
+        {   
+            unsigned char high = FromHex((unsigned char)str[++i]);  
+            unsigned char low = FromHex((unsigned char)str[++i]);  
+            strTemp += high*16 + low;  
+        }  
+        else strTemp += str[i];  
+    }  
+    return strTemp;  
+}  
+
+
 inline int Callback4Default(CCarrot* p, const string& strHeader, const string& strResult)
 {
-    //printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
-    //printf("strHeader=%s\n", strHeader.c_str());
-    //printf("strResult=%s\n", strResult.c_str());
-    //printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+    printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+    printf("strHeader=%s\n", strHeader.c_str());
+    printf("strResult=%s\n", strResult.c_str());
+    printf("##############################\n");
     
     int HttpStatus = p->GetHttpStatus();
     if(HttpStatus != 200 and HttpStatus != 302)
     {
         printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
         printf("Http Status is illeage, %d\n", HttpStatus);
-        printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+        printf("##############################\n");
         return -1;
     }
     
@@ -141,17 +197,31 @@ inline int Callback4Default(CCarrot* p, const string& strHeader, const string& s
 
 inline int Callback4VerifyLogin(CCarrot* p, const string& strHeader, const string& strResult)
 {
-    //printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
-    //printf("strHeader=%s\n", strHeader.c_str());
-    //printf("strResult=%s\n", strResult.c_str());
-    //printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+    printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+    printf("strHeader=%s\n", strHeader.c_str());
+    printf("strResult=%s\n", strResult.c_str());
+    printf("##############################\n");
     
     int HttpStatus = p->GetHttpStatus();
     if(HttpStatus != 200)
     {
         printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
         printf("Http Status is illeage, %d\n", HttpStatus);
-        printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+        printf("##############################\n");
+        return -1;
+    }
+
+    Json::Reader reader;
+    Json::Value root;
+    if (!reader.parse(strResult, root, false))
+    {
+        printf("json parse failed\n");
+        return -1;
+    }
+
+    int retcode = root["retcode"].asInt();
+    if(retcode != 0)
+    {
         return -1;
     }
     
@@ -160,17 +230,17 @@ inline int Callback4VerifyLogin(CCarrot* p, const string& strHeader, const strin
 
 inline int Callback4GetScanState(CCarrot* p, const string& strHeader, const string& strResult)
 {
-    //printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
-    //printf("strHeader=%s\n", strHeader.c_str());
-    //printf("strResult=%s\n", strResult.c_str());
-    //printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+    printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+    printf("strHeader=%s\n", strHeader.c_str());
+    printf("strResult=%s\n", strResult.c_str());
+    printf("##############################\n");
 
     int HttpStatus = p->GetHttpStatus();
     if(HttpStatus != 200)
     {
         printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
         printf("Http Status is illeage, %d\n", HttpStatus);
-        printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+        printf("##############################\n");
         return -1;
     }
 
@@ -181,25 +251,30 @@ inline int Callback4GetScanState(CCarrot* p, const string& strHeader, const stri
     {
         //登录成功
         p->m_strUrl = vct[2];
+        printf("Login processing...\n");
         return 0;
     }
     else if(vct[0] == "65")
     {
         //二维码已失效
+        printf("QR expired, downloading it again...\n");
         return 1;
     }
     else if(vct[0] == "66")
     {
         //二维码未失效
+        printf("Please scan the QR code...\n");
         return 2;
     }
     else if(vct[0] == "67")
     {
         //二维码认证中
+        printf("Authing...\n");
         return 3;
     }
     else
     {
+        printf("HTTP request error...retrying...\n");
         return -1;
     }
 
@@ -211,14 +286,14 @@ inline int Callback4FetchCookieVF(CCarrot* p, const string& strHeader, const str
     printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
     printf("strHeader=%s\n", strHeader.c_str());
     printf("strResult=%s\n", strResult.c_str());
-    printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+    printf("##############################\n");
 
     int HttpStatus = p->GetHttpStatus();
     if(HttpStatus != 200)
     {
         printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
         printf("Http Status is illeage, %d\n", HttpStatus);
-        printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+        printf("##############################\n");
         return -1;
     }
     
@@ -230,6 +305,12 @@ inline int Callback4FetchCookieVF(CCarrot* p, const string& strHeader, const str
         return -1;
     }
 
+    int retcode = root["retcode"].asInt();
+    if(retcode != 0)
+    {
+        return -1;
+    }
+    
     p->m_mapCookie["vfwebqq"] = root["result"]["vfwebqq"].asString();
     
     return 0;
@@ -237,31 +318,36 @@ inline int Callback4FetchCookieVF(CCarrot* p, const string& strHeader, const str
 
 inline int Callback4FetchCookiePN(CCarrot* p, const string& strHeader, const string& strResult)
 {
-    //printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
-    //printf("strHeader=%s\n", strHeader.c_str());
-    //printf("strResult=%s\n", strResult.c_str());
-    //printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
-    char buff[10240] = {0};
-    CGzip::gzip_uncompress(strResult.c_str(), strResult.size(), buff, sizeof(buff));
-    printf("*******************************\n");
-    printf("strResult=%s\n", buff);
+    printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+    printf("strHeader=%s\n", strHeader.c_str());
+    printf("strResult=%s\n", strResult.c_str());
+    printf("##############################\n");
     
     int HttpStatus = p->GetHttpStatus();
     if(HttpStatus != 200)
     {
         printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
         printf("Http Status is illeage, %d\n", HttpStatus);
-        printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+        printf("##############################\n");
         return -1;
     }
 
     Json::Reader reader;
     Json::Value root;
-    if (!reader.parse(buff, root, false))
+    if (!reader.parse(strResult.c_str(), root, false))
     {
         printf("json parse failed\n");
         return -1;
     }
+
+    int retcode = root["retcode"].asInt();
+    if(retcode != 0)
+    {
+        return -1;
+    }
+
+    p->m_mapCookie["psessionid"] = root["result"]["psessionid"].asString();
+    p->m_mapCookie["uin"] = root["result"]["p_uin"].asString();
     
     return 0;
 }
@@ -271,6 +357,7 @@ CCarrot::CCarrot()
 {
     m_handle = NULL;
     m_pHeaders = NULL;
+    m_HttpStatus = 0;
     m_UserID = 0;
     m_LoginStatus = 0;
     m_bKeepAlive = true;
@@ -285,7 +372,7 @@ CCarrot::~CCarrot()
 int CCarrot::Init()
 {
     m_UserID = 229845213;
-    m_strPasswd = "Hui900705";
+    m_strPasswd = "HUI900705";
 
     //全局初始化
     CURLcode CURLRet = curl_global_init(CURL_GLOBAL_ALL);
@@ -392,6 +479,8 @@ int CCarrot::Get(const char* pUrl, const map<string,string>& mapParam, fnc_callb
     //保存cookie
     SaveHttpCookie();
 
+    SetHttpStatus();
+    
     FinishSession();
 
     int Ret = 0;
@@ -407,6 +496,31 @@ int CCarrot::Get(const char* pUrl, const map<string,string>& mapParam, fnc_callb
 
 
 int CCarrot::Post(const char* pUrl, const map<string,string>& mapParam, fnc_callback_t func, const char* pRerfer)
+{
+    //设置POST参数
+    string strParam;
+    map<string,string>::const_iterator iter = mapParam.begin();
+    while(iter != mapParam.end())
+    {
+        char tmp[10240] = {0};
+        snprintf(tmp, sizeof(tmp), "%s=%s", iter->first.c_str(), iter->second.c_str());
+        strParam.append(tmp);
+        iter++;
+        if(iter != mapParam.end())
+        {
+            strParam.append("&");
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    return Post(pUrl, strParam.c_str(), func, pRerfer);
+}
+
+
+int CCarrot::Post(const char* pUrl, const char* pParam, fnc_callback_t func, const char* pRerfer)
 {
     printf("Post begin ...\n");
     
@@ -437,27 +551,10 @@ int CCarrot::Post(const char* pUrl, const map<string,string>& mapParam, fnc_call
     }
     
     //设置POST参数
-    string strUrl;
-    map<string,string>::const_iterator iter = mapParam.begin();
-    while(iter != mapParam.end())
+    if(pParam)
     {
-        char tmp[1024] = {0};
-        snprintf(tmp, sizeof(tmp), "%s=%s", iter->first.c_str(), iter->second.c_str());
-        strUrl.append(tmp);
-        iter++;
-        if(iter != mapParam.end())
-        {
-            strUrl.append("&");
-        }
-        else
-        {
-            break;
-        }
+        curl_easy_setopt(m_handle, CURLOPT_POSTFIELDS, pParam); 
     }
-
-    //char buff[10240] = {0};
-    //CGzip::gzip_compress(strUrl.c_str(), strUrl.size(), buff, sizeof(buff));
-    curl_easy_setopt(m_handle, CURLOPT_POSTFIELDS, strUrl.c_str()); 
     
     //一旦接收到http 头部数据后将调用该函数
     //函原型:size_t function(void *ptr, size_t size, size_t nmemb, void *stream); 
@@ -497,6 +594,8 @@ int CCarrot::Post(const char* pUrl, const map<string,string>& mapParam, fnc_call
     
     //保存cookie
     SaveHttpCookie();
+
+    SetHttpStatus();
     
     FinishSession();
 
@@ -505,11 +604,12 @@ int CCarrot::Post(const char* pUrl, const map<string,string>& mapParam, fnc_call
     {
         Ret = func(this, strHeaderRsp, strWriteRsp);
     }
-    
+
     printf("Post end ...\n");
     
     return Ret;
 }
+
 
 int CCarrot::Download2File(const char* pUrl, const char* file_path, const map<string,string>& mapParam)
 {
@@ -614,8 +714,8 @@ void CCarrot::SetHttpHeader()
 {
     printf("SetHttpHeader begin ...\n");
 
+    m_pHeaders = curl_slist_append(m_pHeaders, "Content-Type: application/x-www-form-urlencoded; charset=UTF-8");
     m_pHeaders = curl_slist_append(m_pHeaders, "Accept-Language: zh-CN,zh;q=0.8");
-    m_pHeaders = curl_slist_append(m_pHeaders, "Accept-Encoding: gzip, deflate, sdch, br");
     m_pHeaders = curl_slist_append(m_pHeaders, "Accept: */*");
     m_pHeaders = curl_slist_append(m_pHeaders, "Connection: Keep-Alive");  
     m_pHeaders = curl_slist_append(m_pHeaders, "User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.71 Safari/537.36");
@@ -649,17 +749,18 @@ void CCarrot::SetHttpCookie()
         SEP "foo"       //Name
         SEP "bar";       //Value
         */
-        printf("\t%s=%s\n", iter->first.c_str(), iter->second.c_str());
+        //printf("\t%s=%s\n", iter->first.c_str(), iter->second.c_str());
         //curl_easy_setopt(m_handle, CURLOPT_COOKIELIST, iter->second.c_str());
 
         //buff格式:key=value
-        char buff[1024] = {0};
-        snprintf(buff, sizeof(buff), "%s=%s", iter->first.c_str(), iter->second.c_str());
-        curl_easy_setopt(m_handle, CURLOPT_COOKIE, buff);
+        //char buff[1024] = {0};
+        //snprintf(buff, sizeof(buff), "%s=%s", iter->first.c_str(), iter->second.c_str());
+        //curl_easy_setopt(m_handle, CURLOPT_COOKIE, buff);
     }
 
+    
     //会使curl下一次发请求时从指定的文件中读取cookie
-    //CURLRet = curl_easy_setopt(m_handle, CURLOPT_COOKIEFILE, COOKIEPATH);
+    CURLRet = curl_easy_setopt(m_handle, CURLOPT_COOKIEFILE, COOKIEPATH);
  
     printf("SetHttpCookie end ...\n");
 }
@@ -746,9 +847,9 @@ bool CCarrot::VerifyLogin()
         mapParam["vfwebqq"] = m_mapCookie["vfwebqq"];
         mapParam["clientid"] = "53999199";
         mapParam["psessionid"] = m_mapCookie["psessionid"];
-        mapParam["t"] = m_mapCookie["0.1"];
+        mapParam["t"] = "0.1";
         
-        if(Get(GET_ONLINE, mapParam, Callback4VerifyLogin, REFERER_OL))
+        if(Get(GET_ONLINE, mapParam, Callback4VerifyLogin, REFERER_OL) == 0)
         {
             flag = true;
         }
@@ -790,32 +891,9 @@ int CCarrot::GetScanState()
     mapParam["login_sig"] = "";
     mapParam["pt_randsalt"] = "0";
     
-    while(true)
+    while(Get(SCAN_STATE, mapParam, Callback4GetScanState, SCAN_STATE_REFERER) != 0)
     {
         sleep(2);
-        int Status = Get(SCAN_STATE, mapParam, Callback4GetScanState, SCAN_STATE_REFERER);
-        if(Status == 0)
-        {
-            printf("Login processing...\n");
-            break;
-        }
-        else if(Status == 1)
-        {
-            printf("QR expired, downloading it again...\n");
-            GetQR();
-        }
-        else if(Status == 2)
-        {
-            printf("Please scan the QR code...\n");
-        }
-        else if(Status == 3)
-        {
-            printf("Auth ing...\n");
-        }
-        else
-        {
-            printf("HTTP request error...retrying...\n");
-        }
     }
 
     printf("GetScanState end ...\n");
@@ -835,13 +913,6 @@ int CCarrot::FetchCookiePT()
 int CCarrot::FetchCookieVF()
 {
     printf("FetchCookieVF begin ...\n");
-
-    //删除cookie中的qrsig
-    map<string, string>::iterator iter = m_mapCookie.find("qrsig");
-    if(iter != m_mapCookie.end())
-    {
-        m_mapCookie.erase(iter);
-    }
     
     map<string, string> mapParam;
     mapParam["ptwebqq"] = m_mapCookie["ptwebqq"];
@@ -863,12 +934,12 @@ int CCarrot::FetchCookiePN()
     Json::Value req;
     Json::FastWriter writer;
     req["ptwebqq"] = m_mapCookie["ptwebqq"];
-    req["clientid"] = "53999199";
+    req["clientid"] = 53999199;
     req["psessionid"] = "";
     req["status"] = "online";
-    
+
     map<string, string> mapParam;
-    mapParam["r"] =  writer.write(req);
+    mapParam["r"] = UrlEncode(writer.write(req));
     
     int Ret = Post(FETCH_PN, mapParam, Callback4FetchCookiePN, REFERER_PN);
     
@@ -883,8 +954,7 @@ int CCarrot::ParserCookieFile()
     FILE* cookiefile = fopen(COOKIEPATH, "r");
     if(cookiefile == NULL)
     {
-        printf("open %s failed\n", COOKIEPATH);
-        return -1;
+        return 0;
     }
     
     while(true)
@@ -928,19 +998,23 @@ int CCarrot::ParserCookieFile()
 
 int CCarrot::GetHttpStatus()
 {
-    int HttpStatus;
+    return m_HttpStatus;
+}
+
+int CCarrot::SetHttpStatus()
+{
     CURLcode CURLRet = CURLE_OK;
     
-    CURLRet = curl_easy_getinfo(m_handle, CURLINFO_RESPONSE_CODE, &HttpStatus);            //获取cookielist信息
+    CURLRet = curl_easy_getinfo(m_handle, CURLINFO_RESPONSE_CODE, &m_HttpStatus);            //获取cookielist信息
     if( CURLRet != CURLE_OK)
     {
-       printf("get cookie info failed\n");
+       printf("get response code failed\n");
        return -1;
     }
 
     //printf("HttpStatus=%d\n", HttpStatus);
 
-    return HttpStatus;
+    return 0;
 }
 
 int CCarrot::Run()
@@ -989,16 +1063,11 @@ int CCarrot::Run()
             printf("FetchCookiePN failed, Ret=%d\n", Ret);
             continue;
         }
+    }
 
-        map<string,string>::iterator iter = m_mapCookie.begin();
-        printf("------------\n");
-        for(; iter != m_mapCookie.end(); iter++)
-        {
-            printf("%s=%s\n", iter->first.c_str(), iter->second.c_str());
-        }
-        printf("------------\n");
-        
-        break;
+    while(true)
+    {
+        sleep(2);
     }
     
     //判断登录状态

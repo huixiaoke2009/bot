@@ -9,7 +9,7 @@ LIBS =  -lz -lcurl /usr/local/lib/libjson.a -lpthread -ldl
 TARGETS = carrot
 all:$(TARGETS)
 
-$(TARGETS):main.o carrot.o gzip.o
+$(TARGETS):main.o carrot.o
 	$(CXX) $(INCS) $^ $(LIBS) -o $@
 
 %.o: %.cpp

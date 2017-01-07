@@ -22,6 +22,7 @@ friend int Callback4VerifyLogin(CCarrot* p, const string& strHeader, const strin
 friend int Callback4GetScanState(CCarrot* p, const string& strHeader, const string& strResult);
 friend int Callback4FetchCookieVF(CCarrot* p, const string& strHeader, const string& strResult);
 friend int Callback4FetchCookiePN(CCarrot* p, const string& strHeader, const string& strResult);
+
 public:
     CCarrot();
     ~CCarrot();
@@ -42,6 +43,7 @@ private:
     int Get(const char* pUrl, const map<string,string>& mapParam, fnc_callback_t fun, const char* pRerfer = NULL);
     // http post
     int Post(const char* pUrl, const map<string,string>& mapParam, fnc_callback_t fun, const char* pRerfer = NULL);
+    int Post(const char* pUrl, const char* p, fnc_callback_t fun, const char* pRerfer = NULL);
     // http download file
     int Download2File(const char* pUrl, const char* file_path, const map<string,string>& mapParam);
     //set the http header for a request
@@ -54,6 +56,8 @@ private:
     int ParserCookieFile();
     //获取http返回状态
     int GetHttpStatus();
+    //设置htt返回状态
+    int SetHttpStatus();
     
 //业务逻辑
 private:
@@ -75,8 +79,10 @@ private:
     CURL* m_handle;
     //http 头部
     struct curl_slist* m_pHeaders;
+    int m_HttpStatus;
     //http cookie信息
     map<std::string, string> m_mapCookie;
+    map<std::string, string> m_mapCookie2;
     //FetchCookiePT函数使用的一个url，从GetScanState函数获得
     std::string m_strUrl;
 
