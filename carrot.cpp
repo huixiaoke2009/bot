@@ -118,62 +118,6 @@ void parser_ptuicb(const string& str, vector<string>& vct)
     }
 }
 
-unsigned char ToHex(unsigned char x)   
-{   
-    return  x > 9 ? x + 55 : x + 48;   
-}  
-  
-unsigned char FromHex(unsigned char x)   
-{   
-    unsigned char y;  
-    if (x >= 'A' && x <= 'Z') y = x - 'A' + 10;  
-    else if (x >= 'a' && x <= 'z') y = x - 'a' + 10;  
-    else if (x >= '0' && x <= '9') y = x - '0';  
-    return y;  
-}  
-  
-std::string UrlEncode(const std::string& str)  
-{  
-    std::string strTemp = "";  
-    size_t length = str.length();  
-    for (size_t i = 0; i < length; i++)  
-    {  
-        if (isalnum((unsigned char)str[i]) ||   
-            (str[i] == '-') ||  
-            (str[i] == '_') ||   
-            (str[i] == '.') ||   
-            (str[i] == '~'))  
-            strTemp += str[i];  
-        else if (str[i] == ' ')  
-            strTemp += "+";  
-        else  
-        {  
-            strTemp += '%';  
-            strTemp += ToHex((unsigned char)str[i] >> 4);  
-            strTemp += ToHex((unsigned char)str[i] % 16);  
-        }  
-    }  
-    return strTemp;  
-}  
-  
-std::string UrlDecode(const std::string& str)  
-{  
-    std::string strTemp = "";  
-    size_t length = str.length();  
-    for (size_t i = 0; i < length; i++)  
-    {  
-        if (str[i] == '+') strTemp += ' ';  
-        else if (str[i] == '%')  
-        {   
-            unsigned char high = FromHex((unsigned char)str[++i]);  
-            unsigned char low = FromHex((unsigned char)str[++i]);  
-            strTemp += high*16 + low;  
-        }  
-        else strTemp += str[i];  
-    }  
-    return strTemp;  
-}  
-
 
 inline int Callback4Default(CCarrot* p, const string& strHeader, const string& strResult)
 {
@@ -223,6 +167,19 @@ inline int Callback4VerifyLogin(CCarrot* p, const string& strHeader, const strin
     if(retcode != 0)
     {
         return -1;
+    }
+
+    //{"result":[{"client_type":1,"status":"online","uin":1786202149}],"retcode":0}
+    
+    int friend_num = root["result"].size();
+    for(int i = 0; i < friend_num; i++)
+    {
+        OnlineFriend o;
+        o.uin = root["result"][i]["uin"].asDouble();
+        o.client_type = root["result"][i]["client_type"].asInt();
+        snprintf(o.status, sizeof(o.status), "%s", root["result"][i]["status"].asString().c_str());
+
+        p->m_mapOnlineFriend[o.uin] = o;
     }
     
     return 0;
@@ -347,10 +304,117 @@ inline int Callback4FetchCookiePN(CCarrot* p, const string& strHeader, const str
     }
 
     p->m_mapCookie["psessionid"] = root["result"]["psessionid"].asString();
-    p->m_mapCookie["uin"] = root["result"]["p_uin"].asString();
+    p->m_mapCookie["uin"] = root["result"]["uin"].asString();
     
     return 0;
 }
+
+
+inline int Callback4GetQQNumByUin(CCarrot* p, const string& strHeader, const string& strResult)
+{
+    printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+    printf("strHeader=%s\n", strHeader.c_str());
+    printf("strResult=%s\n", strResult.c_str());
+    printf("##############################\n");
+    
+    int HttpStatus = p->GetHttpStatus();
+    if(HttpStatus != 200 and HttpStatus != 302)
+    {
+        printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+        printf("Http Status is illeage, %d\n", HttpStatus);
+        printf("##############################\n");
+        return -1;
+    }
+
+    
+    Json::Reader reader;
+    Json::Value root;
+    if (!reader.parse(strResult.c_str(), root, false))
+    {
+        printf("json parse failed\n");
+        return -1;
+    }
+
+    int retcode = root["retcode"].asInt();
+    if(retcode != 0)
+    {
+        return -1;
+    }
+
+    map<uint64_t, OnlineFriend>::iterator iter = p->m_mapOnlineFriend.begin();
+    for(; iter != p->m_mapOnlineFriend.end(); iter++)
+    {
+        if(iter->first == uint64_t(root["result"]["uin"].asDouble()))
+        {
+            iter->second.qqnum = root["result"]["account"].asDouble();
+        }
+    }
+    
+    return 0;
+}
+
+
+inline int Callback4FetchMessage(CCarrot* p, const string& strHeader, const string& strResult)
+{
+    printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+    printf("strHeader=%s\n", strHeader.c_str());
+    printf("strResult=%s\n", strResult.c_str());
+    printf("##############################\n");
+    
+    int HttpStatus = p->GetHttpStatus();
+    if(HttpStatus != 200 and HttpStatus != 302)
+    {
+        printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+        printf("Http Status is illeage, %d\n", HttpStatus);
+        printf("##############################\n");
+        return -1;
+    }
+
+    
+    Json::Reader reader;
+    Json::Value root;
+    if (!reader.parse(strResult.c_str(), root, false))
+    {
+        printf("json parse failed\n");
+        return -1;
+    }
+
+    int retcode = root["retcode"].asInt();
+    if(retcode != 0)
+    {
+        return -1;
+    }
+
+    //文字
+    //{"result":[{"poll_type":"message","value":{"content":[["font",{"color":"000000","name":"微软雅黑","size":10,"style":[0,0,0]}],"123"],"from_uin":1786202149,"msg_id":26684,"msg_type":0,"time":1483846258,"to_uin":229845213}}],"retcode":0}
+    //自带表情
+    //{"result":[{"poll_type":"message","value":{"content":[["font",{"color":"000000","name":"微软雅黑","size":10,"style":[0,0,0]}],["face",98]],"from_uin":1786202149,"msg_id":26707,"msg_type":0,"time":1483848513,"to_uin":229845213}}],"retcode":0}
+    //群消息
+    //{"result":[{"poll_type":"group_message","value":{"content":[["font",{"color":"000000","name":"微软雅黑","size":10,"style":[0,0,0]}],"123"],"from_uin":858811018,"group_code":858811018,"msg_id":3373,"msg_type":0,"send_uin":1786202149,"time":1483848903,"to_uin":229845213}}],"retcode":0}
+    //只考虑文字的情况，没时间调表情
+    string strMsgType = root["result"][0]["poll_type"].asString();
+    string strContent = root["result"][0]["value"]["content"][1].asString();
+    uint64_t SendUin = root["result"][0]["value"]["from_uin"].asDouble();
+    uint64_t ToQQnum = root["result"][0]["value"]["to_uin"].asDouble();
+    time_t send_time = root["result"][0]["value"]["time"].asDouble();
+    uint64_t GroupCode = 0;
+    if(strMsgType == "group_message")
+    {
+        GroupCode = root["result"][0]["value"]["group_code"].asDouble();
+    }
+    
+    p->m_message.send_uin = SendUin;
+    p->m_message.to_qqnum = ToQQnum;
+    p->m_message.group_code = GroupCode;
+    p->m_message.send_time = send_time;
+    snprintf(p->m_message.msg_type, 64, "%s", strMsgType.c_str());
+    snprintf(p->m_message.message, 102400, "%s", strContent.c_str());
+
+    return 0;
+}
+
+
+
 
 
 CCarrot::CCarrot()
@@ -358,9 +422,7 @@ CCarrot::CCarrot()
     m_handle = NULL;
     m_pHeaders = NULL;
     m_HttpStatus = 0;
-    m_UserID = 0;
-    m_LoginStatus = 0;
-    m_bKeepAlive = true;
+    m_bKeepAlive = false;
 }
 
 CCarrot::~CCarrot()
@@ -371,9 +433,6 @@ CCarrot::~CCarrot()
 
 int CCarrot::Init()
 {
-    m_UserID = 229845213;
-    m_strPasswd = "HUI900705";
-
     //全局初始化
     CURLcode CURLRet = curl_global_init(CURL_GLOBAL_ALL);
     if(CURLRet != CURLE_OK)
@@ -851,6 +910,12 @@ bool CCarrot::VerifyLogin()
         
         if(Get(GET_ONLINE, mapParam, Callback4VerifyLogin, REFERER_OL) == 0)
         {
+            map<uint64_t, OnlineFriend>::iterator iter = m_mapOnlineFriend.begin();
+            for(; iter != m_mapOnlineFriend.end(); iter++)
+            {
+                GetQQNumByUin(iter->first, iter->second.qqnum);
+            }
+            
             flag = true;
         }
     }
@@ -939,7 +1004,7 @@ int CCarrot::FetchCookiePN()
     req["status"] = "online";
 
     map<string, string> mapParam;
-    mapParam["r"] = UrlEncode(writer.write(req));
+    mapParam["r"] = writer.write(req);
     
     int Ret = Post(FETCH_PN, mapParam, Callback4FetchCookiePN, REFERER_PN);
     
@@ -948,10 +1013,9 @@ int CCarrot::FetchCookiePN()
     return Ret;
 }
 
-int CCarrot::ParserCookieFile()
+int CCarrot::ParserSelfCookieFile()
 {
-    printf("ParserCookieFile begin ...\n");
-    FILE* cookiefile = fopen(COOKIEPATH, "r");
+    FILE* cookiefile = fopen(SELFCOOKIEPATH, "r");
     if(cookiefile == NULL)
     {
         return 0;
@@ -970,14 +1034,10 @@ int CCarrot::ParserCookieFile()
             
             vector<string> result;
             split(str, result, "\t");
-            if(result.size() == 7)
+            if(result.size() == 2)
             {
-                m_mapCookie[result[5]] = result[6];
-                printf("\t%s=%s\n", result[5].c_str(), result[6].c_str());
-            }
-            else if(result.size() == 6)
-            {
-
+                m_mapCookie[result[0]] = result[1];
+                printf("\t%s=%s\n", result[0].c_str(), result[1].c_str());
             }
             else
             {
@@ -991,8 +1051,29 @@ int CCarrot::ParserCookieFile()
         }
     }
 
-    printf("ParserCookieFile end ...\n");
-    
+    fclose(cookiefile);
+   
+    return 0;
+}
+
+int CCarrot::SaveSelfCookieFile()
+{
+    FILE* cookiefile = fopen(SELFCOOKIEPATH, "w");
+    if(cookiefile == NULL)
+    {
+        return 0;
+    }
+
+    map<string,string>::iterator iter = m_mapCookie.begin();
+    for(; iter != m_mapCookie.end(); iter++)
+    {
+        char buff[10240] = {0};
+        snprintf(buff, sizeof(buff), "%s\t%s\n", iter->first.c_str(), iter->second.c_str());
+        fwrite(buff, strlen(buff), 1, cookiefile);
+    }
+
+    fclose(cookiefile);
+
     return 0;
 }
 
@@ -1017,10 +1098,168 @@ int CCarrot::SetHttpStatus()
     return 0;
 }
 
+int CCarrot::GetUserFriend()
+{
+    Json::Value req;
+    Json::FastWriter writer;
+    req["psessionid"] = m_mapCookie["psessionid"];
+    req["clientid"] = 53999199;
+
+    map<string, string> mapParam;
+    mapParam["r"] = writer.write(req);
+
+    
+    Post(GET_USER_FRIEND, mapParam, Callback4Default, REFERER_GET_USER_FRIEND);
+
+    return 0;
+}
+
+int CCarrot::GetQQNumByUin(uint64_t uin, uint64_t& qqnum)
+{
+    printf("GetQQNumByUin begin ...\n");
+
+    char buff[32] = {0};
+    snprintf(buff, sizeof(buff), "%ld", uin);
+    map<string, string> mapParam;
+    mapParam["tuin"] = buff;
+    mapParam["type"] = "1";
+    mapParam["vfwebqq"] = m_mapCookie["vfwebqq"];
+    mapParam["t"] = "0.1";
+
+    int Ret = Get(GET_QQNUM_BY_UIN, mapParam, Callback4GetQQNumByUin, REFERER_GET_QQNUM_BY_UIN);
+
+    printf("GetQQNumByUin end ...\n");
+    
+    return Ret;
+}
+
+int CCarrot::FetchMessage()
+{
+    printf("FetchMessage begin ...\n");
+
+    Json::Value req;
+    Json::FastWriter writer;
+    req["ptwebqq"] = m_mapCookie["ptwebqq"];
+    req["clientid"] = 53999199;
+    req["psessionid"] = m_mapCookie["psessionid"];
+    req["key"] = "";
+
+    map<string, string> mapParam;
+    mapParam["r"] = writer.write(req);
+    
+    int Ret = Post(FETCH_MSG, mapParam, Callback4FetchMessage, REFERER_FETCH_MSG);
+    
+    printf("FetchMessage end ...\n");
+    
+    return Ret;
+}
+
+int CCarrot::SendMessageByQQnum(uint64_t qqnum, const char* message)
+{
+    map<uint64_t, OnlineFriend>::iterator iter = m_mapOnlineFriend.begin();
+    for(; iter != m_mapOnlineFriend.end(); iter++)
+    {
+        if(iter->second.qqnum == qqnum)
+        {
+            return SendMessageByUin(iter->first, message);
+        }
+    }
+
+    return -1;
+}
+
+int CCarrot::SendMessageByUin(uint64_t uin, const char* message)
+{
+    printf("SendMessage begin ...\n");
+            
+    Json::Value req;
+    Json::FastWriter writer;
+    
+    Json::Value content;
+    Json::Value font;
+    Json::Value fontmap;
+    Json::Value style;
+    content.append(message);
+    font.append("font");
+    fontmap["name"] = "宋体";
+    fontmap["size"] = 10;
+    style.append(0);
+    style.append(0);
+    style.append(0);
+    fontmap["style"] = style;
+    fontmap["color"] = "000000";
+    font.append(fontmap);
+    content.append(font);
+    
+    req["to"] = uin;
+    req["clientid"] = 53999199;
+    req["face"] = 522;
+    req["msg_id"] = time(NULL);
+    req["psessionid"] = m_mapCookie["psessionid"];
+    req["content"] = writer.write(content);
+
+    map<string, string> mapParam;
+    mapParam["r"] = writer.write(req);
+    printf("%s\n", writer.write(req).c_str());
+        
+    int Ret = Post(SEND_MSG, mapParam, Callback4Default, REFERER_SEND_MSG);
+    
+    printf("SendMessage end ...\n");
+    
+    return Ret;
+}
+
+int CCarrot::SendGroupMsgByGroup(uint64_t groupnum, const char* message)
+{
+    return 0;
+}
+
+int CCarrot::SendGroupMsgByUin(uint64_t uin, const char* message)
+{
+    printf("SendGroupMsgByUin begin ...\n");
+            
+    Json::Value req;
+    Json::FastWriter writer;
+    
+    Json::Value content;
+    Json::Value font;
+    Json::Value fontmap;
+    Json::Value style;
+    content.append(message);
+    font.append("font");
+    fontmap["name"] = "宋体";
+    fontmap["size"] = 10;
+    style.append(0);
+    style.append(0);
+    style.append(0);
+    fontmap["style"] = style;
+    fontmap["color"] = "000000";
+    font.append(fontmap);
+    content.append(font);
+    
+    req["group_uin"] = uin;
+    req["clientid"] = 53999199;
+    req["face"] = 522;
+    req["msg_id"] = time(NULL);
+    req["psessionid"] = m_mapCookie["psessionid"];
+    req["content"] = writer.write(content);
+
+    map<string, string> mapParam;
+    mapParam["r"] = writer.write(req);
+    printf("%s\n", writer.write(req).c_str());
+        
+    int Ret = Post(SEND_GROUP_MSG, mapParam, Callback4Default, REFERER_SEND_GROUP_MSG);
+    
+    printf("SendGroupMsgByUin end ...\n");
+    
+    return Ret;
+}
+
+
 int CCarrot::Run()
 {
     //加载本地cookie文件
-    if(ParserCookieFile() != 0)
+    if(ParserSelfCookieFile() != 0)
     {
         return -1;
     }
@@ -1065,9 +1304,27 @@ int CCarrot::Run()
         }
     }
 
+    SaveSelfCookieFile();
+
+    //SendMessageByQQnum(571902704, "test");
     while(true)
     {
-        sleep(2);
+        if(FetchMessage() == 0)
+        {
+            string strMsgType = m_message.msg_type;
+            if(strMsgType == "message")
+            {
+                SendMessageByUin(m_message.send_uin, m_message.message);
+            }
+            else if(strMsgType == "group_message")
+            {
+                SendGroupMsgByUin(m_message.group_code, m_message.message);
+            }
+            else
+            {
+
+            }
+        }
     }
     
     //判断登录状态
