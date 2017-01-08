@@ -18,25 +18,50 @@ typedef int (*fnc_callback_t)(CCarrot* p, const string& str1, const string& str2
 
 typedef struct tagOnlineFriend
 {
-    uint64_t uin;
-    uint64_t qqnum;
-    int client_type;
-    char status[64];
-
+    uint64_t uin;       //服务器上的临时ID
+    uint64_t qqnum;     //QQ号
+    int client_type;    //客户端类型
+    char status[64];    //状态
+    
     tagOnlineFriend()
     {
         memset(this, 0x0, sizeof(tagOnlineFriend));
     }
 }OnlineFriend;
 
+typedef struct tagMessageDebris
+{
+    char type;  //是否为表情，0文字，1表情
+    char buff[10240]; //类型
+    int code;      //编码
+
+    tagMessageDebris()
+    {
+        memset(this, 0x0, sizeof(tagMessageDebris));
+    }
+}MessageDebris;
+
+typedef struct tagMessageUnit
+{
+    MessageDebris debris[128];
+    
+    tagMessageUnit()
+    {
+        memset(this, 0x0, sizeof(tagMessageUnit));
+    }
+}MessageUnit;
+
 typedef struct tagMessage
 {
-    uint64_t send_uin;
-    uint64_t to_qqnum;
-    uint64_t group_code;
-    char message[102400];
-    char msg_type[64];
-    time_t send_time;
+    uint64_t send_uin;      //发送消息的用户临时ID
+    uint64_t to_qqnum;      //接收消息的QQ号，正常就是自己的QQ号
+    uint64_t group_code;    //群临时ID
+    uint64_t did;           //讨论组临时ID
+    char msg_type[64];      //服务器上的消息类型，用于区分是群消息还是好友消息
+    time_t send_time;       //消息发送时间
+
+    MessageUnit message;
+    
     tagMessage()
     {
         memset(this, 0x0, sizeof(tagMessage));
@@ -121,14 +146,30 @@ private:
     //由uin拿到QQ号
     int GetQQNumByUin(uint64_t uin, uint64_t& qqnum);
     
-    //轮循消息
+    //接收消息
     int FetchMessage();
+    
     //发送好友消息
-    int SendMessageByQQnum(uint64_t qqnum, const char* message);
-    int SendMessageByUin(uint64_t uin, const char* message);
+    int SendFriendMsgByQQnum(uint64_t qqnum, const char* message);
+    int SendFriendMsgByUin(uint64_t uin, const char* message);
+    int SendFriendMsgUnitByQQnum(uint64_t qqnum, const MessageUnit& o);
+    int SendFriendMsgUnitByUin(uint64_t uin, const MessageUnit& o);
+    
     //发送群消息
-    int SendGroupMsgByGroup(uint64_t groupnum, const char* message);
+    int SendGroupMsgByGroupnum(uint64_t groupnum, const char* message);
     int SendGroupMsgByUin(uint64_t uin, const char* message);
+    int SendGroupMsgUnitByGroupnum(uint64_t qqnum, const MessageUnit& o);
+    int SendGroupMsgUnitByUin(uint64_t uin, const MessageUnit& o);
+    
+    //发送讨论组消息
+    int SendDiscuMsgByDiscunum(uint64_t did, const char* message);
+    int SendDiscuMsgByUin(uint64_t uin, const char* message);
+    int SendDiscuMsgUnitByGroupnum(uint64_t qqnum, const MessageUnit& o);
+    int SendDiscuMsgUnitByUin(uint64_t uin, const MessageUnit& o);
+    
+    //发送消息底层代码
+    int SendMsg(uint64_t uin, const char * message, int type);
+    int SendMsgByMsgUnit(uint64_t uin, const MessageUnit& o, int type);
 private:
     //每次是否是相同的会话
     bool m_bKeepAlive;

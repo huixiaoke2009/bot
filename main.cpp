@@ -5,7 +5,7 @@
 #include "carrot.h"
 
 int main(int argc, char* argv[])
-{    
+{
     CCarrot carrot;
     int Ret = carrot.Init();
     if(Ret != 0)

@@ -393,23 +393,37 @@ inline int Callback4FetchMessage(CCarrot* p, const string& strHeader, const stri
     //{"result":[{"poll_type":"group_message","value":{"content":[["font",{"color":"000000","name":"微软雅黑","size":10,"style":[0,0,0]}],"123"],"from_uin":858811018,"group_code":858811018,"msg_id":3373,"msg_type":0,"send_uin":1786202149,"time":1483848903,"to_uin":229845213}}],"retcode":0}
     //只考虑文字的情况，没时间调表情
     string strMsgType = root["result"][0]["poll_type"].asString();
-    string strContent = root["result"][0]["value"]["content"][1].asString();
-    uint64_t SendUin = root["result"][0]["value"]["from_uin"].asDouble();
-    uint64_t ToQQnum = root["result"][0]["value"]["to_uin"].asDouble();
-    time_t send_time = root["result"][0]["value"]["time"].asDouble();
-    uint64_t GroupCode = 0;
-    if(strMsgType == "group_message")
+    Json::Value content = root["result"][0]["value"]["content"];
+    int size = content.size();
+    for(int i = 1; i < size; i++)
     {
-        GroupCode = root["result"][0]["value"]["group_code"].asDouble();
+        Json::Value tmp = content[i];
+        if(tmp.type() == Json::arrayValue)
+        {
+            p->m_message.message.debris[i-1].type = 1;
+            snprintf(p->m_message.message.debris[i-1].buff, sizeof(p->m_message.message.debris[i-1].buff), "%s", tmp[0].asString().c_str());
+            p->m_message.message.debris[i-1].code = tmp[1].asInt();
+        }
+        else
+        {
+            p->m_message.message.debris[i-1].type = 0;
+            snprintf(p->m_message.message.debris[i-1].buff, sizeof(p->m_message.message.debris[i-1].buff), "%s", tmp.asString().c_str());
+        }
     }
     
-    p->m_message.send_uin = SendUin;
-    p->m_message.to_qqnum = ToQQnum;
-    p->m_message.group_code = GroupCode;
-    p->m_message.send_time = send_time;
-    snprintf(p->m_message.msg_type, 64, "%s", strMsgType.c_str());
-    snprintf(p->m_message.message, 102400, "%s", strContent.c_str());
-
+    snprintf(p->m_message.msg_type, sizeof(p->m_message.msg_type), "%s", strMsgType.c_str());
+    p->m_message.send_uin = root["result"][0]["value"]["from_uin"].asDouble();
+    p->m_message.to_qqnum = root["result"][0]["value"]["to_uin"].asDouble();
+    p->m_message.send_time = root["result"][0]["value"]["time"].asDouble();
+    if(strMsgType == "group_message")
+    {
+        p->m_message.group_code = root["result"][0]["value"]["group_code"].asDouble();
+    }
+    else if(strMsgType == "discu_message")
+    {
+        p->m_message.did = root["result"][0]["value"]["did"].asDouble();
+    }
+    
     return 0;
 }
 
@@ -1146,7 +1160,8 @@ int CCarrot::FetchMessage()
 
     map<string, string> mapParam;
     mapParam["r"] = writer.write(req);
-    
+
+    memset(&m_message, 0x0, sizeof(m_message));
     int Ret = Post(FETCH_MSG, mapParam, Callback4FetchMessage, REFERER_FETCH_MSG);
     
     printf("FetchMessage end ...\n");
@@ -1154,69 +1169,94 @@ int CCarrot::FetchMessage()
     return Ret;
 }
 
-int CCarrot::SendMessageByQQnum(uint64_t qqnum, const char* message)
+//下面四个函数是发送好友消息
+int CCarrot::SendFriendMsgByQQnum(uint64_t qqnum, const char* message)
 {
     map<uint64_t, OnlineFriend>::iterator iter = m_mapOnlineFriend.begin();
     for(; iter != m_mapOnlineFriend.end(); iter++)
     {
         if(iter->second.qqnum == qqnum)
         {
-            return SendMessageByUin(iter->first, message);
+            return SendFriendMsgByUin(iter->first, message);
         }
     }
 
     return -1;
 }
 
-int CCarrot::SendMessageByUin(uint64_t uin, const char* message)
+int CCarrot::SendFriendMsgByUin(uint64_t uin, const char* message)
 {
-    printf("SendMessage begin ...\n");
-            
-    Json::Value req;
-    Json::FastWriter writer;
-    
-    Json::Value content;
-    Json::Value font;
-    Json::Value fontmap;
-    Json::Value style;
-    content.append(message);
-    font.append("font");
-    fontmap["name"] = "宋体";
-    fontmap["size"] = 10;
-    style.append(0);
-    style.append(0);
-    style.append(0);
-    fontmap["style"] = style;
-    fontmap["color"] = "000000";
-    font.append(fontmap);
-    content.append(font);
-    
-    req["to"] = uin;
-    req["clientid"] = 53999199;
-    req["face"] = 522;
-    req["msg_id"] = time(NULL);
-    req["psessionid"] = m_mapCookie["psessionid"];
-    req["content"] = writer.write(content);
-
-    map<string, string> mapParam;
-    mapParam["r"] = writer.write(req);
-    printf("%s\n", writer.write(req).c_str());
-        
-    int Ret = Post(SEND_MSG, mapParam, Callback4Default, REFERER_SEND_MSG);
-    
-    printf("SendMessage end ...\n");
-    
-    return Ret;
+    return SendMsg(uin, message, 0);
 }
 
-int CCarrot::SendGroupMsgByGroup(uint64_t groupnum, const char* message)
+
+int CCarrot::SendFriendMsgUnitByQQnum(uint64_t qqnum, const MessageUnit& o)
+{
+    map<uint64_t, OnlineFriend>::iterator iter = m_mapOnlineFriend.begin();
+    for(; iter != m_mapOnlineFriend.end(); iter++)
+    {
+        if(iter->second.qqnum == qqnum)
+        {
+            return SendFriendMsgUnitByUin(iter->first, o);
+        }
+    }
+
+    return -1;
+}
+
+int CCarrot::SendFriendMsgUnitByUin(uint64_t uin, const MessageUnit& o)
+{
+    return SendMsgByMsgUnit(uin, o, 0);
+}
+
+//下面四个函数是发送群消息
+int CCarrot::SendGroupMsgByGroupnum(uint64_t groupnum, const char* message)
 {
     return 0;
 }
 
 int CCarrot::SendGroupMsgByUin(uint64_t uin, const char* message)
 {
-    printf("SendGroupMsgByUin begin ...\n");
+    return SendMsg(uin, message, 1);
+}
+
+int CCarrot::SendGroupMsgUnitByGroupnum(uint64_t qqnum, const MessageUnit& o)
+{
+    return 0;
+}
+
+
+int CCarrot::SendGroupMsgUnitByUin(uint64_t uin, const MessageUnit& o)
+{
+    return SendMsgByMsgUnit(uin, o, 1);
+}
+
+
+//下面四个函数是发送讨论组消息
+int CCarrot::SendDiscuMsgByDiscunum(uint64_t did, const char* message)
+{
+    return 0;
+}
+
+int CCarrot::SendDiscuMsgByUin(uint64_t uin, const char* message)
+{
+    return SendMsg(uin, message, 2);
+}
+
+int CCarrot::SendDiscuMsgUnitByGroupnum(uint64_t qqnum, const MessageUnit& o)
+{
+    return 0;
+}
+
+int CCarrot::SendDiscuMsgUnitByUin(uint64_t uin, const MessageUnit& o)
+{
+    return SendMsgByMsgUnit(uin, o, 2);
+}
+
+
+int CCarrot::SendMsg(uint64_t uin, const char* message, int type)
+{
+    printf("SendMsg begin ...\n");
             
     Json::Value req;
     Json::FastWriter writer;
@@ -1236,8 +1276,24 @@ int CCarrot::SendGroupMsgByUin(uint64_t uin, const char* message)
     fontmap["color"] = "000000";
     font.append(fontmap);
     content.append(font);
+
+    if(type == 0)
+    {
+        req["to"] = uin;
+    }
+    else if(type == 1)
+    {
+        req["group_uin"] = uin;
+    }
+    else if(type == 2)
+    {
+        req["did"] = uin;
+    }
+    else
+    {
+        return -1;
+    }
     
-    req["group_uin"] = uin;
     req["clientid"] = 53999199;
     req["face"] = 522;
     req["msg_id"] = time(NULL);
@@ -1247,10 +1303,112 @@ int CCarrot::SendGroupMsgByUin(uint64_t uin, const char* message)
     map<string, string> mapParam;
     mapParam["r"] = writer.write(req);
     printf("%s\n", writer.write(req).c_str());
-        
-    int Ret = Post(SEND_GROUP_MSG, mapParam, Callback4Default, REFERER_SEND_GROUP_MSG);
+
+    int Ret = 0;
+    if(type == 0)
+    {
+        Ret = Post(SEND_MSG, mapParam, Callback4Default, REFERER_SEND_MSG);
+    }
+    else if(type == 1)
+    {
+        Ret = Post(SEND_GROUP_MSG, mapParam, Callback4Default, REFERER_SEND_GROUP_MSG);
+    }
+    else
+    {
+        Ret = Post(SEND_DISCU_MSG, mapParam, Callback4Default, REFERER_SEND_DISCU_MSG);
+    }
     
-    printf("SendGroupMsgByUin end ...\n");
+    printf("SendMsg end ...\n");
+    
+    return Ret;
+}
+
+int CCarrot::SendMsgByMsgUnit(uint64_t uin, const MessageUnit& o, int type)
+{
+    printf("SendMsgByMsgUnit begin ...\n");
+            
+    Json::Value req;
+    Json::FastWriter writer;
+    
+    Json::Value content;
+    Json::Value font;
+    Json::Value fontmap;
+    Json::Value style;
+    
+    for(unsigned int i = 0; i < sizeof(o.debris)/sizeof(MessageDebris); i++)
+    {
+        if(o.debris[i].buff[0] == '\0')
+        {
+            break;
+        }
+
+        Json::Value msg_debris;
+        if(o.debris[i].type == 0)
+        {
+            content.append(o.debris[i].buff);
+        }
+        else
+        {
+            Json::Value tmp;
+            tmp.append(o.debris[i].buff);
+            tmp.append(o.debris[i].code);
+            content.append(tmp);
+        }
+    }
+    
+    font.append("font");
+    fontmap["name"] = "宋体";
+    fontmap["size"] = 10;
+    style.append(0);
+    style.append(0);
+    style.append(0);
+    fontmap["style"] = style;
+    fontmap["color"] = "000000";
+    font.append(fontmap);
+    content.append(font);
+
+    if(type == 0)
+    {
+        req["to"] = uin;
+    }
+    else if(type == 1)
+    {
+        req["group_uin"] = uin;
+    }
+    else if(type == 2)
+    {
+        req["did"] = uin;
+    }
+    else
+    {
+        return -1;
+    }
+    
+    req["clientid"] = 53999199;
+    req["face"] = 522;
+    req["msg_id"] = time(NULL);
+    req["psessionid"] = m_mapCookie["psessionid"];
+    req["content"] = writer.write(content);
+
+    map<string, string> mapParam;
+    mapParam["r"] = writer.write(req);
+    printf("%s\n", writer.write(req).c_str());
+
+    int Ret = 0;
+    if(type == 0)
+    {
+        Ret = Post(SEND_MSG, mapParam, Callback4Default, REFERER_SEND_MSG);
+    }
+    else if(type == 1)
+    {
+        Ret = Post(SEND_GROUP_MSG, mapParam, Callback4Default, REFERER_SEND_GROUP_MSG);
+    }
+    else
+    {
+        Ret = Post(SEND_DISCU_MSG, mapParam, Callback4Default, REFERER_SEND_DISCU_MSG);
+    }
+    
+    printf("SendMsgByMsgUnit end ...\n");
     
     return Ret;
 }
@@ -1263,7 +1421,7 @@ int CCarrot::Run()
     {
         return -1;
     }
-    
+
     //登录
     while(!VerifyLogin())
     {
@@ -1305,25 +1463,36 @@ int CCarrot::Run()
     }
 
     SaveSelfCookieFile();
-
-    //SendMessageByQQnum(571902704, "test");
+    
     while(true)
     {
-        if(FetchMessage() == 0)
+        try
         {
-            string strMsgType = m_message.msg_type;
-            if(strMsgType == "message")
+            if(FetchMessage() == 0)
             {
-                SendMessageByUin(m_message.send_uin, m_message.message);
+                
+                string strMsgType = m_message.msg_type;
+                if(strMsgType == "message")
+                {
+                    SendFriendMsgUnitByUin(m_message.send_uin, m_message.message);
+                }
+                else if(strMsgType == "group_message")
+                {
+                    SendGroupMsgUnitByUin(m_message.group_code, m_message.message);
+                }
+                else if(strMsgType == "discu_message")
+                {
+                    SendDiscuMsgUnitByUin(m_message.did, m_message.message);
+                }
+                else
+                {
+                    continue;
+                }
             }
-            else if(strMsgType == "group_message")
-            {
-                SendGroupMsgByUin(m_message.group_code, m_message.message);
-            }
-            else
-            {
-
-            }
+        }
+        catch(...)
+        {
+            printf("except\n");
         }
     }
     
