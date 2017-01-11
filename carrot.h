@@ -9,9 +9,11 @@
 #include<curl/curl.h>
 #include <json/json.h>
 #include <string.h>
+#include "mysql_wrap.h"
 
 
 using namespace std;
+using namespace mmlib;
 
 class CCarrot;
 typedef int (*fnc_callback_t)(CCarrot* p, const string& str1, const string& str2);
@@ -43,12 +45,19 @@ typedef struct tagMessageDebris
 
 typedef struct tagMessageUnit
 {
-    MessageDebris debris[128];
+    unsigned int debris_num;
+    MessageDebris debris[32];
     
     tagMessageUnit()
     {
         memset(this, 0x0, sizeof(tagMessageUnit));
     }
+
+    void Copy(const tagMessageUnit& o)
+    {
+        memcpy(this, &o, sizeof(tagMessageUnit));
+    }
+
 }MessageUnit;
 
 typedef struct tagMessage
@@ -170,9 +179,15 @@ private:
     //发送消息底层代码
     int SendMsg(uint64_t uin, const char * message, int type);
     int SendMsgByMsgUnit(uint64_t uin, const MessageUnit& o, int type);
+
+    //判断一条消息是否为命令
+    int IsCommand(const MessageUnit& o, MessageUnit& oKey, MessageUnit& oValue);
+
+    //string与messageUnit互转
+    int String2MessageUnit(const string& s, MessageUnit& o);
+    int MessageUnit2String(const MessageUnit& o, string& s);
+    int MessageUnit2String2(const MessageUnit& o, string& s);
 private:
-    //每次是否是相同的会话
-    bool m_bKeepAlive;
 
     //libcurl句柄
     CURL* m_handle;
@@ -187,6 +202,8 @@ private:
     //在线好友列表状态
     map<uint64_t, OnlineFriend> m_mapOnlineFriend;
 
+    CMySQL m_mysql;
+    
     //临时存储消息用的
     Message m_message;
 };

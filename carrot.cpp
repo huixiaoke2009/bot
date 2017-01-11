@@ -2,6 +2,7 @@
 #include "carrot.h" 
 #include "config.h"
 
+
 static size_t OnHeaderData(void* buffer, size_t size, size_t nmemb, void* lpVoid)
 {
     string* str = dynamic_cast<string*>((string *)lpVoid);
@@ -46,7 +47,64 @@ static size_t OnDownloadFile(void* buffer, size_t size, size_t nmemb, void* lpVo
     return written;
 }
 
-static int split(const string& str, vector<string>& ret_, string sep = ",")
+
+
+/* MurmurHash2, by Austin Appleby
+ * Note - This code makes a few assumptions about how your machine behaves -
+ * 1. We can read a 4-byte value from any address without crashing
+ * 2. sizeof(int) == 4
+ *
+ * And it has a few limitations -
+ *
+ * 1. It will not work incrementally.
+ * 2. It will not produce the same results on little-endian and big-endian
+ *    machines.
+ */
+unsigned int MurmurHash2(const void *key, int len, int seed = 5381)
+{
+    /* 'm' and 'r' are mixing constants generated offline.
+     They're not really 'magic', they just happen to work well.  */
+    const uint32_t m = 0x5bd1e995;
+    const int r = 24;
+ 
+    /* Initialize the hash to a 'random' value */
+    uint32_t h = seed ^ len;
+ 
+    /* Mix 4 bytes at a time into the hash */
+    const unsigned char *data = (const unsigned char *)key;
+ 
+    while(len >= 4) {
+        uint32_t k = *(uint32_t*)data;
+ 
+        k *= m;
+        k ^= k >> r;
+        k *= m;
+ 
+        h *= m;
+        h ^= k;
+ 
+        data += 4;
+        len -= 4;
+    }
+ 
+    /* Handle the last few bytes of the input array  */
+    switch(len) {
+    case 3: h ^= data[2] << 16;
+    case 2: h ^= data[1] << 8;
+    case 1: h ^= data[0]; h *= m;
+    };
+ 
+    /* Do a few final mixes of the hash to ensure the last few
+     * bytes are well-incorporated. */
+    h ^= h >> 13;
+    h *= m;
+    h ^= h >> 15;
+ 
+    return (unsigned int)h;
+}
+
+
+static int split(const string& str, vector<string>& ret_, const string& sep = ",")
 {
     if (str.empty())
     {
@@ -101,7 +159,7 @@ static string strip(const string& str, const char c = ' ')
     return str.substr(pos);
 }
 
-void parser_ptuicb(const string& str, vector<string>& vct)
+static void parser_ptuicb(const string& str, vector<string>& vct)
 {
     string str2 = strip(strip(str, '\n'));
     
@@ -127,7 +185,7 @@ inline int Callback4Default(CCarrot* p, const string& strHeader, const string& s
     printf("##############################\n");
     
     int HttpStatus = p->GetHttpStatus();
-    if(HttpStatus != 200 and HttpStatus != 302)
+    if(HttpStatus != 200 && HttpStatus != 302)
     {
         printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
         printf("Http Status is illeage, %d\n", HttpStatus);
@@ -142,7 +200,7 @@ inline int Callback4Default(CCarrot* p, const string& strHeader, const string& s
 inline int Callback4VerifyLogin(CCarrot* p, const string& strHeader, const string& strResult)
 {
     printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
-    printf("strHeader=%s\n", strHeader.c_str());
+    //printf("strHeader=%s\n", strHeader.c_str());
     printf("strResult=%s\n", strResult.c_str());
     printf("##############################\n");
     
@@ -318,7 +376,7 @@ inline int Callback4GetQQNumByUin(CCarrot* p, const string& strHeader, const str
     printf("##############################\n");
     
     int HttpStatus = p->GetHttpStatus();
-    if(HttpStatus != 200 and HttpStatus != 302)
+    if(HttpStatus != 200)
     {
         printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
         printf("Http Status is illeage, %d\n", HttpStatus);
@@ -362,7 +420,7 @@ inline int Callback4FetchMessage(CCarrot* p, const string& strHeader, const stri
     printf("##############################\n");
     
     int HttpStatus = p->GetHttpStatus();
-    if(HttpStatus != 200 and HttpStatus != 302)
+    if(HttpStatus != 200 && HttpStatus != 302)
     {
         printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
         printf("Http Status is illeage, %d\n", HttpStatus);
@@ -391,7 +449,6 @@ inline int Callback4FetchMessage(CCarrot* p, const string& strHeader, const stri
     //{"result":[{"poll_type":"message","value":{"content":[["font",{"color":"000000","name":"微软雅黑","size":10,"style":[0,0,0]}],["face",98]],"from_uin":1786202149,"msg_id":26707,"msg_type":0,"time":1483848513,"to_uin":229845213}}],"retcode":0}
     //群消息
     //{"result":[{"poll_type":"group_message","value":{"content":[["font",{"color":"000000","name":"微软雅黑","size":10,"style":[0,0,0]}],"123"],"from_uin":858811018,"group_code":858811018,"msg_id":3373,"msg_type":0,"send_uin":1786202149,"time":1483848903,"to_uin":229845213}}],"retcode":0}
-    //只考虑文字的情况，没时间调表情
     string strMsgType = root["result"][0]["poll_type"].asString();
     Json::Value content = root["result"][0]["value"]["content"];
     int size = content.size();
@@ -408,6 +465,12 @@ inline int Callback4FetchMessage(CCarrot* p, const string& strHeader, const stri
         {
             p->m_message.message.debris[i-1].type = 0;
             snprintf(p->m_message.message.debris[i-1].buff, sizeof(p->m_message.message.debris[i-1].buff), "%s", tmp.asString().c_str());
+        }
+
+        p->m_message.message.debris_num++;
+        if(p->m_message.message.debris_num >= sizeof(p->m_message.message.debris)/sizeof(p->m_message.message.debris[0]))
+        {
+            break;
         }
     }
     
@@ -436,7 +499,6 @@ CCarrot::CCarrot()
     m_handle = NULL;
     m_pHeaders = NULL;
     m_HttpStatus = 0;
-    m_bKeepAlive = false;
 }
 
 CCarrot::~CCarrot()
@@ -447,6 +509,7 @@ CCarrot::~CCarrot()
 
 int CCarrot::Init()
 {
+    int Ret = 0;
     //全局初始化
     CURLcode CURLRet = curl_global_init(CURL_GLOBAL_ALL);
     if(CURLRet != CURLE_OK)
@@ -456,9 +519,14 @@ int CCarrot::Init()
     }
     
     printf("libcur初始化成功，版本信息为:%s\n", curl_version());
-    
-    printf("Init success, m_bKeepAlive=%d\n", m_bKeepAlive);
 
+    Ret = m_mysql.Connect(MYSQLDB_IP, MYSQLDB_USER, MYSQLDB_PASSWD, MYSQLDB_DBNAME, MYSQLDB_PORT);
+    if(Ret != 0)
+    {
+        printf("mysql connect failed, Ret=%d", Ret);
+        return -1;
+    }
+    
     return 0;
 }
 
@@ -494,7 +562,7 @@ int CCarrot::Get(const char* pUrl, const map<string,string>& mapParam, fnc_callb
         }
     }
 
-    //printf("url=%s\n", strUrl.c_str());
+    printf("url=%s\n", strUrl.c_str());
     
     CURLcode CURLRet = CURLE_OK;
     
@@ -626,6 +694,7 @@ int CCarrot::Post(const char* pUrl, const char* pParam, fnc_callback_t func, con
     //设置POST参数
     if(pParam)
     {
+        printf("post data:%s\n", pParam);
         curl_easy_setopt(m_handle, CURLOPT_POSTFIELDS, pParam); 
     }
     
@@ -722,6 +791,8 @@ int CCarrot::Download2File(const char* pUrl, const char* file_path, const map<st
             break;
         }
     }
+
+    printf("url=%s\n", strUrl.c_str());
     
     CURLcode CURLRet = CURLE_OK;
     
@@ -868,7 +939,7 @@ void CCarrot::SaveHttpCookie()
         if(result.size() == 7)
         {
             m_mapCookie[result[5]] = result[6];
-            printf("\t%s=%s\n", result[5].c_str(), result[6].c_str());
+            //printf("\t%s=%s\n", result[5].c_str(), result[6].c_str());
         }
         else if(result.size() == 6)
         {
@@ -914,7 +985,7 @@ bool CCarrot::VerifyLogin()
     printf("VerifyLogin begin ...\n");
 
     bool flag = false;
-    if (m_mapCookie.find("psessionid") != m_mapCookie.end() and m_mapCookie.find("vfwebqq") != m_mapCookie.end())
+    if (m_mapCookie.find("psessionid") != m_mapCookie.end() && m_mapCookie.find("vfwebqq") != m_mapCookie.end())
     {
         map<string,string> mapParam;
         mapParam["vfwebqq"] = m_mapCookie["vfwebqq"];
@@ -924,13 +995,15 @@ bool CCarrot::VerifyLogin()
         
         if(Get(GET_ONLINE, mapParam, Callback4VerifyLogin, REFERER_OL) == 0)
         {
+            flag = true;
             map<uint64_t, OnlineFriend>::iterator iter = m_mapOnlineFriend.begin();
             for(; iter != m_mapOnlineFriend.end(); iter++)
             {
-                GetQQNumByUin(iter->first, iter->second.qqnum);
+                if(GetQQNumByUin(iter->first, iter->second.qqnum) != 0)
+                {
+                    flag = false;
+                }
             }
-            
-            flag = true;
         }
     }
     else
@@ -1335,13 +1408,8 @@ int CCarrot::SendMsgByMsgUnit(uint64_t uin, const MessageUnit& o, int type)
     Json::Value fontmap;
     Json::Value style;
     
-    for(unsigned int i = 0; i < sizeof(o.debris)/sizeof(MessageDebris); i++)
+    for(unsigned int i = 0; i < o.debris_num; i++)
     {
-        if(o.debris[i].buff[0] == '\0')
-        {
-            break;
-        }
-
         Json::Value msg_debris;
         if(o.debris[i].type == 0)
         {
@@ -1389,6 +1457,7 @@ int CCarrot::SendMsgByMsgUnit(uint64_t uin, const MessageUnit& o, int type)
     req["msg_id"] = time(NULL);
     req["psessionid"] = m_mapCookie["psessionid"];
     req["content"] = writer.write(content);
+    printf("%s\n", writer.write(content).c_str());
 
     map<string, string> mapParam;
     mapParam["r"] = writer.write(req);
@@ -1413,9 +1482,200 @@ int CCarrot::SendMsgByMsgUnit(uint64_t uin, const MessageUnit& o, int type)
     return Ret;
 }
 
+int CCarrot::IsCommand(const MessageUnit& o, MessageUnit& oKey, MessageUnit& oValue)
+{
+    //01234567890
+    //#add#key#value#
+    int CmdType = 0;
+    string str  = o.debris[0].buff;
+    if(str.size() < 5)
+    {
+        return CmdType;
+    }
+
+    if(str[0]=='#' && str[4]=='#')
+    {
+        string strCmd = str.substr(1, 3);
+        printf("strCmd=%s\n", strCmd.c_str());
+        if(strCmd == "add")
+        {
+            CmdType = 1;
+        }
+        else
+        {
+            return CmdType;
+        }
+
+        bool isFindKey = false;
+        for(unsigned int i = 0; i < o.debris_num; i++)
+        {  
+            string str2;
+            if(i == 0)
+            {
+                str2 = o.debris[i].buff + 5;   
+            }
+            else
+            {
+                str2 = o.debris[i].buff;
+            }
+
+            printf("str2=%s\n", str2.c_str());
+            
+            std::size_t found = str2.find('#');
+            if(!isFindKey && found != string::npos)
+            {
+                string str3 = str2.substr(0, found);
+                printf("str3=%s\n", str3.c_str());
+                if(str3.c_str()[0] != '\0')
+                {
+                    snprintf(oKey.debris[oKey.debris_num].buff, sizeof(oKey.debris[oKey.debris_num].buff), "%s", str3.c_str());
+                    oKey.debris[oKey.debris_num].code = o.debris[i].code;
+                    oKey.debris[oKey.debris_num].type = o.debris[i].type;
+                    oKey.debris_num++;
+                }
+
+                string str4 = str2.substr(found+1);
+                printf("str4=%s\n", str4.c_str());
+                if(str4.c_str()[0] != '\0')
+                {
+                    snprintf(oValue.debris[oValue.debris_num].buff, sizeof(oValue.debris[oValue.debris_num].buff), "%s", str4.c_str());
+                    oValue.debris[oValue.debris_num].code = o.debris[i].code;
+                    oValue.debris[oValue.debris_num].type = o.debris[i].type;
+                    oValue.debris_num++;
+                }
+                
+                isFindKey = true;
+            }
+            else
+            {
+                if(str2.c_str()[0] != '\0')
+                {
+                    if(isFindKey)
+                    {
+                        snprintf(oValue.debris[oValue.debris_num].buff, sizeof(oValue.debris[oValue.debris_num].buff), "%s", str2.c_str());
+                        oValue.debris[oValue.debris_num].code = o.debris[i].code;
+                        oValue.debris[oValue.debris_num].type = o.debris[i].type;
+                        oValue.debris_num++;
+                    }
+                    else
+                    {
+                        snprintf(oKey.debris[oKey.debris_num].buff, sizeof(oKey.debris[oKey.debris_num].buff), "%s", str2.c_str());
+                        oKey.debris[oKey.debris_num].code = o.debris[i].code;
+                        oKey.debris[oKey.debris_num].type = o.debris[i].type;
+                        oKey.debris_num++;
+                    }
+                }
+            }
+        }
+
+        if(!isFindKey)
+        {
+            CmdType = 0;
+        }
+        
+        return CmdType;
+    }
+    
+    return CmdType;
+}
+
+int CCarrot::String2MessageUnit(const string& s, MessageUnit& o)
+{
+    Json::Reader reader;  
+    Json::Value content;  
+    if(!reader.parse(s, content))
+    {
+        printf("json parse error,s=%s\n", s.c_str());
+        return -1;
+    }
+    
+    int size = content.size();
+    for(int i = 0; i < size; i++)
+    {
+        Json::Value tmp = content[i];
+        if(tmp.type() == Json::arrayValue)
+        {
+            o.debris[i].type = 1;
+            snprintf(o.debris[i].buff, sizeof(o.debris[i].buff), "%s", tmp[0].asString().c_str());
+            o.debris[i].code = tmp[1].asInt();
+        }
+        else
+        {
+            o.debris[i].type = 0;
+            snprintf(o.debris[i].buff, sizeof(o.debris[i].buff), "%s", tmp.asString().c_str());
+        }
+
+        o.debris_num++;
+        if(o.debris_num >= sizeof(o.debris)/sizeof(o.debris[0]))
+        {
+            break;
+        }
+    }
+    
+    return 0;
+}
+
+int CCarrot::MessageUnit2String(const MessageUnit& o, string& s)
+{
+    Json::FastWriter writer;
+    Json::Value content;
+
+    for(unsigned int i = 0; i < o.debris_num; i++)
+    {
+        Json::Value msg_debris;
+        if(o.debris[i].type == 0)
+        {
+            content.append(o.debris[i].buff);
+        }
+        else
+        {
+            Json::Value tmp;
+            tmp.append(o.debris[i].buff);
+            tmp.append(o.debris[i].code);
+            content.append(tmp);
+        }
+    }
+
+    s = writer.write(content);
+
+    if(s.length() > 0 && s[s.length()-1] == '\n')
+    {
+        s = s.substr(0, s.length()-1);
+    }
+    
+    return 0;
+}
+
+int CCarrot::MessageUnit2String2(const MessageUnit& o, string& s)
+{
+    string str;
+    if(MessageUnit2String(o, str) == 0)
+    {
+        int size = str.length();
+        for(int i = 0; i < size; i++)
+        {
+            if(str[i] == '"' || str[i] == '[' || str[i] == ']' 
+                || str[i] == '{' || str[i]=='}' || str[i] == '\n')
+            {
+                continue;
+            }
+            else
+            {
+                s+=str[i];
+            }
+        }
+        
+        return 0;
+    }
+
+    return -1;
+}
+
 
 int CCarrot::Run()
 {
+    int Ret = 0;
+
     //加载本地cookie文件
     if(ParserSelfCookieFile() != 0)
     {
@@ -1425,7 +1685,6 @@ int CCarrot::Run()
     //登录
     while(!VerifyLogin())
     {
-        int Ret = 0;
         Ret = GetQR();
         if(Ret != 0)
         {
@@ -1463,30 +1722,136 @@ int CCarrot::Run()
     }
 
     SaveSelfCookieFile();
-    
+
+    sleep(3);
     while(true)
     {
         try
         {
+            usleep(500000);
             if(FetchMessage() == 0)
             {
-                
-                string strMsgType = m_message.msg_type;
-                if(strMsgType == "message")
+                MessageUnit oKey;
+                MessageUnit oValue;
+                if(!IsCommand(m_message.message, oKey, oValue))
                 {
-                    SendFriendMsgUnitByUin(m_message.send_uin, m_message.message);
-                }
-                else if(strMsgType == "group_message")
-                {
-                    SendGroupMsgUnitByUin(m_message.group_code, m_message.message);
-                }
-                else if(strMsgType == "discu_message")
-                {
-                    SendDiscuMsgUnitByUin(m_message.did, m_message.message);
+                    //不是命令,去DB匹配关键字
+                    string s;
+                    MessageUnit2String2(m_message.message, s);
+                    int revc_num = 0;
+                    char sql[102400] = {0};
+                    snprintf(sql, sizeof(sql), "select * from %s where locate(`key`, '%s') !=0 or locate('%s', `key`) !=0", 
+                                MYSQLDB_CHAT_TABLE, s.c_str(), s.c_str());
+                    printf("sql=%s\n", sql);
+                    Ret = m_mysql.Query(sql, strlen(sql), &revc_num);
+                    if(Ret != 0)
+                    {
+                        printf("mysql query failed, Ret=%d\n", Ret);
+                        continue;
+                    }
+
+                    if(revc_num == 0)
+                    {
+                        continue;
+                    }
+
+                    float max_score = 0.0;
+                    string strKey;
+                    string strValue;
+                    while(true)
+                    {
+                        MYSQL_ROW CurRow = m_mysql.FetchRecord();
+                        if(!CurRow)
+                        {
+                            break;
+                        }
+                        unsigned long *pCurRowLen = m_mysql.FetchLength();
+                        if ((CurRow[2] == NULL)||(pCurRowLen[2] == 0))
+                        {
+                            printf("sql query ret is not valid, prow=%s, len=%ld\n", CurRow[0], pCurRowLen[0]);
+                            break;
+                        }
+
+                        string s1(CurRow[1], pCurRowLen[1]);
+                        string s2(CurRow[2], pCurRowLen[2]);
+
+                        float score = 0.0;
+                        int len1 = s.size();
+                        int len2 = s1.size();
+                        if(len1 > len2)
+                        {
+                            score = float(len2)/float(len1);
+                        }
+                        else if(len1 < len2)
+                        {
+                            score = float(len1)/float(len2);
+                        }
+                        else
+                        {
+                            strKey = s1;
+                            strValue = s2;
+                            max_score = 1;
+                            break;
+                        }
+
+                        if(score > max_score)
+                        {
+                            max_score = score;
+                            strKey = s1;
+                            strValue = s2;
+                        }
+                    }
+
+                    m_mysql.ReleaseRes();
+
+                    if(max_score <= 0.5000)
+                    {
+                        continue;
+                    }
+                    
+                    MessageUnit row;
+                    String2MessageUnit(strValue, row);
+                    
+                    string strMsgType = m_message.msg_type;
+                    if(strMsgType == "message")
+                    {
+                        SendFriendMsgUnitByUin(m_message.send_uin, row);
+                    }
+                    else if(strMsgType == "group_message")
+                    {
+                        SendGroupMsgUnitByUin(m_message.group_code, row);
+                    }
+                    else if(strMsgType == "discu_message")
+                    {
+                        SendDiscuMsgUnitByUin(m_message.did, row);
+                    }
+                    else
+                    {
+                        continue;
+                    }
                 }
                 else
                 {
-                    continue;
+                    //是命令
+                    string strKey;
+                    string strValue;
+                    MessageUnit2String2(oKey, strKey);
+                    MessageUnit2String(oValue, strValue);
+                    unsigned int id = MurmurHash2(strKey.c_str(), strKey.size());
+
+                    char ValueBuff[102400-4096] = {0};
+                    m_mysql.EscapeString(ValueBuff, strValue.c_str(), strValue.length());
+                    
+                    char sql[102400] = {0};
+                    snprintf(sql, sizeof(sql), "replace into %s (`id`,`key`,`value`) values ('%u','%s','%s')", 
+                                MYSQLDB_CHAT_TABLE, id, strKey.c_str(), ValueBuff);
+                    printf("sql=%s\n", sql);
+                    Ret=m_mysql.Query(sql, strlen(sql));
+                    if(Ret != 0)
+                    {
+                        printf("mysql query failed, Ret=%d\n", Ret);
+                        continue;
+                    }
                 }
             }
         }
@@ -1495,8 +1860,6 @@ int CCarrot::Run()
             printf("except\n");
         }
     }
-    
-    //判断登录状态
     
     return 0;
 }
@@ -1509,6 +1872,13 @@ bool CCarrot::CreateSession()
         curl_slist_free_all(m_pHeaders);
         m_pHeaders = NULL;
     }
+
+    //关闭一个会话
+    if(m_handle != NULL)
+    {
+        curl_easy_cleanup(m_handle);
+        m_handle = NULL;
+    }
     
     if(m_handle == NULL)
     {
@@ -1518,26 +1888,6 @@ bool CCarrot::CreateSession()
         {
             printf("curl_easy_init failed\n");
             return false;
-        }
-    }
-    else
-    {
-        if(!m_bKeepAlive)
-        {
-            //关闭一个会话
-            if(m_handle != NULL)
-            {
-                curl_easy_cleanup(m_handle);
-                m_handle = NULL;
-            }
-
-            //启用一个会话
-            m_handle = curl_easy_init();
-            if(m_handle == NULL)
-            {
-                printf("curl_easy_init failed\n");
-                return false;
-            }
         }
     }
     
@@ -1555,14 +1905,11 @@ void CCarrot::FinishSession()
         m_pHeaders = NULL;
     }
     
-    if(!m_bKeepAlive)
+    //关闭一个会话
+    if(m_handle)
     {
-        //关闭一个会话
-        if(m_handle)
-        {
-            curl_easy_cleanup(m_handle);
-            m_handle = NULL;
-        }
+        curl_easy_cleanup(m_handle);
+        m_handle = NULL;
     }
 }
 

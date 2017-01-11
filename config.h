@@ -51,4 +51,12 @@ const char* QRPATH = "/tmp/qr.png";
 const char* COOKIEPATH = "/tmp/smartqq.cookie";
 const char* SELFCOOKIEPATH = "/tmp/selfsmartqq.cookie";
 
+
+//数据库配置
+const char* MYSQLDB_IP = "127.0.0.1";
+const char* MYSQLDB_USER = "root";
+const char* MYSQLDB_PASSWD = "bhgame@123";
+const char* MYSQLDB_DBNAME = "robot";
+const unsigned short int MYSQLDB_PORT = 3306;
+const char* MYSQLDB_CHAT_TABLE = "chat";
 #endif

@@ -4,12 +4,12 @@ RM = rm -f
 CP = cp -f
 CXXFLAGS += -Wall -D_GNU_SOURCE  -g -DLINUX -O0 -fPIC -Wno-invalid-offsetof
 INCS = -I. -I..
-LIBS =  -lz -lcurl /usr/local/lib/libjson.a -lpthread -ldl
+LIBS =  -lz -lcurl /usr/local/lib/libjson.a /usr/local/mysql/lib/libmysqlclient.a -lpthread -ldl
 
 TARGETS = carrot
 all:$(TARGETS)
 
-$(TARGETS):main.o carrot.o
+$(TARGETS):main.o mysql_wrap.o carrot.o
 	$(CXX) $(INCS) $^ $(LIBS) -o $@
 
 %.o: %.cpp
