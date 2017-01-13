@@ -1,6 +1,6 @@
 
-#ifndef __CARROT_H__
-#define __CARROT_H__
+#ifndef __BOT_H__
+#define __BOT_H__
 
 #include<stdint.h>
 #include<string>
@@ -15,8 +15,8 @@
 using namespace std;
 using namespace mmlib;
 
-class CCarrot;
-typedef int (*fnc_callback_t)(CCarrot* p, const string& str1, const string& str2);
+class CBot;
+typedef int (*fnc_callback_t)(CBot* p, const string& str1, const string& str2);
 
 typedef struct tagOnlineFriend
 {
@@ -77,21 +77,21 @@ typedef struct tagMessage
     }
 }Message;
 
-class CCarrot
+class CBot
 {
 
-friend int Callback4Default(CCarrot* p, const string& strHeader, const string& strResult);
-friend int Callback4VerifyLogin(CCarrot* p, const string& strHeader, const string& strResult);
-friend int Callback4GetScanState(CCarrot* p, const string& strHeader, const string& strResult);
-friend int Callback4FetchCookieVF(CCarrot* p, const string& strHeader, const string& strResult);
-friend int Callback4FetchCookiePN(CCarrot* p, const string& strHeader, const string& strResult);
-friend int Callback4GetQQNumByUin(CCarrot* p, const string& strHeader, const string& strResult);
-friend int Callback4FetchMessage(CCarrot* p, const string& strHeader, const string& strResult);
+friend int Callback4Default(CBot* p, const string& strHeader, const string& strResult);
+friend int Callback4VerifyLogin(CBot* p, const string& strHeader, const string& strResult);
+friend int Callback4GetScanState(CBot* p, const string& strHeader, const string& strResult);
+friend int Callback4FetchCookieVF(CBot* p, const string& strHeader, const string& strResult);
+friend int Callback4FetchCookiePN(CBot* p, const string& strHeader, const string& strResult);
+friend int Callback4GetQQNumByUin(CBot* p, const string& strHeader, const string& strResult);
+friend int Callback4FetchMessage(CBot* p, const string& strHeader, const string& strResult);
 
 
 public:
-    CCarrot();
-    ~CCarrot();
+    CBot();
+    ~CBot();
     
     int Init();
     int Run();

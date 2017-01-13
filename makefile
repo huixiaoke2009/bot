@@ -6,10 +6,10 @@ CXXFLAGS += -Wall -D_GNU_SOURCE  -g -DLINUX -O0 -fPIC -Wno-invalid-offsetof
 INCS = -I. -I..
 LIBS =  -lz -lcurl /usr/local/lib/libjson.a /usr/local/mysql/lib/libmysqlclient.a -lpthread -ldl
 
-TARGETS = carrot
+TARGETS = bot
 all:$(TARGETS)
 
-$(TARGETS):main.o mysql_wrap.o carrot.o
+$(TARGETS):main.o mysql_wrap.o bot.o
 	$(CXX) $(INCS) $^ $(LIBS) -o $@
 
 %.o: %.cpp

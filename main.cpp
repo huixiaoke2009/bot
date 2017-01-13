@@ -2,11 +2,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string>
-#include "carrot.h"
+#include "bot.h"
 
 int main(int argc, char* argv[])
 {
-    CCarrot carrot;
+    CBot carrot;
     int Ret = carrot.Init();
     if(Ret != 0)
     {

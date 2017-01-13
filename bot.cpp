@@ -1,5 +1,5 @@
 
-#include "carrot.h" 
+#include "bot.h" 
 #include "config.h"
 
 
@@ -177,7 +177,7 @@ static void parser_ptuicb(const string& str, vector<string>& vct)
 }
 
 
-inline int Callback4Default(CCarrot* p, const string& strHeader, const string& strResult)
+inline int Callback4Default(CBot* p, const string& strHeader, const string& strResult)
 {
     printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
     printf("strHeader=%s\n", strHeader.c_str());
@@ -197,7 +197,7 @@ inline int Callback4Default(CCarrot* p, const string& strHeader, const string& s
 }
 
 
-inline int Callback4VerifyLogin(CCarrot* p, const string& strHeader, const string& strResult)
+inline int Callback4VerifyLogin(CBot* p, const string& strHeader, const string& strResult)
 {
     printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
     //printf("strHeader=%s\n", strHeader.c_str());
@@ -243,7 +243,7 @@ inline int Callback4VerifyLogin(CCarrot* p, const string& strHeader, const strin
     return 0;
 }
 
-inline int Callback4GetScanState(CCarrot* p, const string& strHeader, const string& strResult)
+inline int Callback4GetScanState(CBot* p, const string& strHeader, const string& strResult)
 {
     printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
     printf("strHeader=%s\n", strHeader.c_str());
@@ -296,7 +296,7 @@ inline int Callback4GetScanState(CCarrot* p, const string& strHeader, const stri
     return -1;
 }
 
-inline int Callback4FetchCookieVF(CCarrot* p, const string& strHeader, const string& strResult)
+inline int Callback4FetchCookieVF(CBot* p, const string& strHeader, const string& strResult)
 {
     printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
     printf("strHeader=%s\n", strHeader.c_str());
@@ -331,7 +331,7 @@ inline int Callback4FetchCookieVF(CCarrot* p, const string& strHeader, const str
     return 0;
 }
 
-inline int Callback4FetchCookiePN(CCarrot* p, const string& strHeader, const string& strResult)
+inline int Callback4FetchCookiePN(CBot* p, const string& strHeader, const string& strResult)
 {
     printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
     printf("strHeader=%s\n", strHeader.c_str());
@@ -368,7 +368,7 @@ inline int Callback4FetchCookiePN(CCarrot* p, const string& strHeader, const str
 }
 
 
-inline int Callback4GetQQNumByUin(CCarrot* p, const string& strHeader, const string& strResult)
+inline int Callback4GetQQNumByUin(CBot* p, const string& strHeader, const string& strResult)
 {
     printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
     printf("strHeader=%s\n", strHeader.c_str());
@@ -412,7 +412,7 @@ inline int Callback4GetQQNumByUin(CCarrot* p, const string& strHeader, const str
 }
 
 
-inline int Callback4FetchMessage(CCarrot* p, const string& strHeader, const string& strResult)
+inline int Callback4FetchMessage(CBot* p, const string& strHeader, const string& strResult)
 {
     printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
     printf("strHeader=%s\n", strHeader.c_str());
@@ -494,20 +494,20 @@ inline int Callback4FetchMessage(CCarrot* p, const string& strHeader, const stri
 
 
 
-CCarrot::CCarrot()
+CBot::CBot()
 {
     m_handle = NULL;
     m_pHeaders = NULL;
     m_HttpStatus = 0;
 }
 
-CCarrot::~CCarrot()
+CBot::~CBot()
 {
     
     
 }
 
-int CCarrot::Init()
+int CBot::Init()
 {
     int Ret = 0;
     //全局初始化
@@ -530,7 +530,7 @@ int CCarrot::Init()
     return 0;
 }
 
-int CCarrot::Get(const char* pUrl, const map<string,string>& mapParam, fnc_callback_t func, const char* pRerfer)
+int CBot::Get(const char* pUrl, const map<string,string>& mapParam, fnc_callback_t func, const char* pRerfer)
 {
     printf("Get begin ...\n");
     
@@ -636,7 +636,7 @@ int CCarrot::Get(const char* pUrl, const map<string,string>& mapParam, fnc_callb
 }
 
 
-int CCarrot::Post(const char* pUrl, const map<string,string>& mapParam, fnc_callback_t func, const char* pRerfer)
+int CBot::Post(const char* pUrl, const map<string,string>& mapParam, fnc_callback_t func, const char* pRerfer)
 {
     //设置POST参数
     string strParam;
@@ -661,7 +661,7 @@ int CCarrot::Post(const char* pUrl, const map<string,string>& mapParam, fnc_call
 }
 
 
-int CCarrot::Post(const char* pUrl, const char* pParam, fnc_callback_t func, const char* pRerfer)
+int CBot::Post(const char* pUrl, const char* pParam, fnc_callback_t func, const char* pRerfer)
 {
     printf("Post begin ...\n");
     
@@ -753,7 +753,7 @@ int CCarrot::Post(const char* pUrl, const char* pParam, fnc_callback_t func, con
 }
 
 
-int CCarrot::Download2File(const char* pUrl, const char* file_path, const map<string,string>& mapParam)
+int CBot::Download2File(const char* pUrl, const char* file_path, const map<string,string>& mapParam)
 {
     printf("Download2File begin ...\n");
     
@@ -854,7 +854,7 @@ int CCarrot::Download2File(const char* pUrl, const char* file_path, const map<st
     return 0;
 }
 
-void CCarrot::SetHttpHeader()
+void CBot::SetHttpHeader()
 {
     printf("SetHttpHeader begin ...\n");
 
@@ -868,7 +868,7 @@ void CCarrot::SetHttpHeader()
     printf("SetHttpHeader end ...\n");
 }
 
-void CCarrot::SetHttpCookie()
+void CBot::SetHttpCookie()
 {
     printf("SetHttpCookie begin ...\n");
     
@@ -909,7 +909,7 @@ void CCarrot::SetHttpCookie()
     printf("SetHttpCookie end ...\n");
 }
 
-void CCarrot::SaveHttpCookie()
+void CBot::SaveHttpCookie()
 {
     printf("SaveHttpCookie begin ...\n");
     
@@ -958,7 +958,7 @@ void CCarrot::SaveHttpCookie()
     printf("SaveHttpCookie end ...\n");
 }
 
-int CCarrot::GetQR()
+int CBot::GetQR()
 {
     printf("GetQR begin ...\n");
     
@@ -980,7 +980,7 @@ int CCarrot::GetQR()
     return Ret;
 }
 
-bool CCarrot::VerifyLogin()
+bool CBot::VerifyLogin()
 {
     printf("VerifyLogin begin ...\n");
 
@@ -1016,7 +1016,7 @@ bool CCarrot::VerifyLogin()
     return flag;
 }
 
-int CCarrot::GetScanState()
+int CBot::GetScanState()
 {
     printf("GetScanState end ...\n");
     
@@ -1053,7 +1053,7 @@ int CCarrot::GetScanState()
     return 0;
 }
 
-int CCarrot::FetchCookiePT()
+int CBot::FetchCookiePT()
 {
     printf("FetchCookiePT begin ...\n");
     map<string, string> mapParam;
@@ -1062,7 +1062,7 @@ int CCarrot::FetchCookiePT()
     return 0;
 }
 
-int CCarrot::FetchCookieVF()
+int CBot::FetchCookieVF()
 {
     printf("FetchCookieVF begin ...\n");
     
@@ -1079,7 +1079,7 @@ int CCarrot::FetchCookieVF()
     return Ret;
 }
 
-int CCarrot::FetchCookiePN()
+int CBot::FetchCookiePN()
 {
     printf("FetchCookiePN begin ...\n");
 
@@ -1100,7 +1100,7 @@ int CCarrot::FetchCookiePN()
     return Ret;
 }
 
-int CCarrot::ParserSelfCookieFile()
+int CBot::ParserSelfCookieFile()
 {
     FILE* cookiefile = fopen(SELFCOOKIEPATH, "r");
     if(cookiefile == NULL)
@@ -1143,7 +1143,7 @@ int CCarrot::ParserSelfCookieFile()
     return 0;
 }
 
-int CCarrot::SaveSelfCookieFile()
+int CBot::SaveSelfCookieFile()
 {
     FILE* cookiefile = fopen(SELFCOOKIEPATH, "w");
     if(cookiefile == NULL)
@@ -1164,12 +1164,12 @@ int CCarrot::SaveSelfCookieFile()
     return 0;
 }
 
-int CCarrot::GetHttpStatus()
+int CBot::GetHttpStatus()
 {
     return m_HttpStatus;
 }
 
-int CCarrot::SetHttpStatus()
+int CBot::SetHttpStatus()
 {
     CURLcode CURLRet = CURLE_OK;
     
@@ -1185,7 +1185,7 @@ int CCarrot::SetHttpStatus()
     return 0;
 }
 
-int CCarrot::GetUserFriend()
+int CBot::GetUserFriend()
 {
     Json::Value req;
     Json::FastWriter writer;
@@ -1201,7 +1201,7 @@ int CCarrot::GetUserFriend()
     return 0;
 }
 
-int CCarrot::GetQQNumByUin(uint64_t uin, uint64_t& qqnum)
+int CBot::GetQQNumByUin(uint64_t uin, uint64_t& qqnum)
 {
     printf("GetQQNumByUin begin ...\n");
 
@@ -1220,7 +1220,7 @@ int CCarrot::GetQQNumByUin(uint64_t uin, uint64_t& qqnum)
     return Ret;
 }
 
-int CCarrot::FetchMessage()
+int CBot::FetchMessage()
 {
     printf("FetchMessage begin ...\n");
 
@@ -1243,7 +1243,7 @@ int CCarrot::FetchMessage()
 }
 
 //下面四个函数是发送好友消息
-int CCarrot::SendFriendMsgByQQnum(uint64_t qqnum, const char* message)
+int CBot::SendFriendMsgByQQnum(uint64_t qqnum, const char* message)
 {
     map<uint64_t, OnlineFriend>::iterator iter = m_mapOnlineFriend.begin();
     for(; iter != m_mapOnlineFriend.end(); iter++)
@@ -1257,13 +1257,13 @@ int CCarrot::SendFriendMsgByQQnum(uint64_t qqnum, const char* message)
     return -1;
 }
 
-int CCarrot::SendFriendMsgByUin(uint64_t uin, const char* message)
+int CBot::SendFriendMsgByUin(uint64_t uin, const char* message)
 {
     return SendMsg(uin, message, 0);
 }
 
 
-int CCarrot::SendFriendMsgUnitByQQnum(uint64_t qqnum, const MessageUnit& o)
+int CBot::SendFriendMsgUnitByQQnum(uint64_t qqnum, const MessageUnit& o)
 {
     map<uint64_t, OnlineFriend>::iterator iter = m_mapOnlineFriend.begin();
     for(; iter != m_mapOnlineFriend.end(); iter++)
@@ -1277,57 +1277,57 @@ int CCarrot::SendFriendMsgUnitByQQnum(uint64_t qqnum, const MessageUnit& o)
     return -1;
 }
 
-int CCarrot::SendFriendMsgUnitByUin(uint64_t uin, const MessageUnit& o)
+int CBot::SendFriendMsgUnitByUin(uint64_t uin, const MessageUnit& o)
 {
     return SendMsgByMsgUnit(uin, o, 0);
 }
 
 //下面四个函数是发送群消息
-int CCarrot::SendGroupMsgByGroupnum(uint64_t groupnum, const char* message)
+int CBot::SendGroupMsgByGroupnum(uint64_t groupnum, const char* message)
 {
     return 0;
 }
 
-int CCarrot::SendGroupMsgByUin(uint64_t uin, const char* message)
+int CBot::SendGroupMsgByUin(uint64_t uin, const char* message)
 {
     return SendMsg(uin, message, 1);
 }
 
-int CCarrot::SendGroupMsgUnitByGroupnum(uint64_t qqnum, const MessageUnit& o)
+int CBot::SendGroupMsgUnitByGroupnum(uint64_t qqnum, const MessageUnit& o)
 {
     return 0;
 }
 
 
-int CCarrot::SendGroupMsgUnitByUin(uint64_t uin, const MessageUnit& o)
+int CBot::SendGroupMsgUnitByUin(uint64_t uin, const MessageUnit& o)
 {
     return SendMsgByMsgUnit(uin, o, 1);
 }
 
 
 //下面四个函数是发送讨论组消息
-int CCarrot::SendDiscuMsgByDiscunum(uint64_t did, const char* message)
+int CBot::SendDiscuMsgByDiscunum(uint64_t did, const char* message)
 {
     return 0;
 }
 
-int CCarrot::SendDiscuMsgByUin(uint64_t uin, const char* message)
+int CBot::SendDiscuMsgByUin(uint64_t uin, const char* message)
 {
     return SendMsg(uin, message, 2);
 }
 
-int CCarrot::SendDiscuMsgUnitByGroupnum(uint64_t qqnum, const MessageUnit& o)
+int CBot::SendDiscuMsgUnitByGroupnum(uint64_t qqnum, const MessageUnit& o)
 {
     return 0;
 }
 
-int CCarrot::SendDiscuMsgUnitByUin(uint64_t uin, const MessageUnit& o)
+int CBot::SendDiscuMsgUnitByUin(uint64_t uin, const MessageUnit& o)
 {
     return SendMsgByMsgUnit(uin, o, 2);
 }
 
 
-int CCarrot::SendMsg(uint64_t uin, const char* message, int type)
+int CBot::SendMsg(uint64_t uin, const char* message, int type)
 {
     printf("SendMsg begin ...\n");
             
@@ -1396,7 +1396,7 @@ int CCarrot::SendMsg(uint64_t uin, const char* message, int type)
     return Ret;
 }
 
-int CCarrot::SendMsgByMsgUnit(uint64_t uin, const MessageUnit& o, int type)
+int CBot::SendMsgByMsgUnit(uint64_t uin, const MessageUnit& o, int type)
 {
     printf("SendMsgByMsgUnit begin ...\n");
             
@@ -1482,7 +1482,7 @@ int CCarrot::SendMsgByMsgUnit(uint64_t uin, const MessageUnit& o, int type)
     return Ret;
 }
 
-int CCarrot::IsCommand(const MessageUnit& o, MessageUnit& oKey, MessageUnit& oValue)
+int CBot::IsCommand(const MessageUnit& o, MessageUnit& oKey, MessageUnit& oValue)
 {
     //01234567890
     //#add#key#value#
@@ -1579,7 +1579,7 @@ int CCarrot::IsCommand(const MessageUnit& o, MessageUnit& oKey, MessageUnit& oVa
     return CmdType;
 }
 
-int CCarrot::String2MessageUnit(const string& s, MessageUnit& o)
+int CBot::String2MessageUnit(const string& s, MessageUnit& o)
 {
     Json::Reader reader;  
     Json::Value content;  
@@ -1615,7 +1615,7 @@ int CCarrot::String2MessageUnit(const string& s, MessageUnit& o)
     return 0;
 }
 
-int CCarrot::MessageUnit2String(const MessageUnit& o, string& s)
+int CBot::MessageUnit2String(const MessageUnit& o, string& s)
 {
     Json::FastWriter writer;
     Json::Value content;
@@ -1646,7 +1646,7 @@ int CCarrot::MessageUnit2String(const MessageUnit& o, string& s)
     return 0;
 }
 
-int CCarrot::MessageUnit2String2(const MessageUnit& o, string& s)
+int CBot::MessageUnit2String2(const MessageUnit& o, string& s)
 {
     string str;
     if(MessageUnit2String(o, str) == 0)
@@ -1672,7 +1672,7 @@ int CCarrot::MessageUnit2String2(const MessageUnit& o, string& s)
 }
 
 
-int CCarrot::Run()
+int CBot::Run()
 {
     int Ret = 0;
 
@@ -1865,7 +1865,7 @@ int CCarrot::Run()
 }
 
 
-bool CCarrot::CreateSession()
+bool CBot::CreateSession()
 {
     if(m_pHeaders != NULL)
     {
@@ -1896,7 +1896,7 @@ bool CCarrot::CreateSession()
 }
 
 
-void CCarrot::FinishSession()
+void CBot::FinishSession()
 {
     //清理头部结构
     if(m_pHeaders)
@@ -1913,7 +1913,7 @@ void CCarrot::FinishSession()
     }
 }
 
-void CCarrot::Finish()
+void CBot::Finish()
 {
     //全局清理
     curl_global_cleanup();
