@@ -18,6 +18,7 @@ using namespace mmlib;
 class CBot;
 typedef int (*fnc_callback_t)(CBot* p, const string& str1, const string& str2);
 
+//好友信息
 typedef struct tagOnlineFriend
 {
     uint64_t uin;       //服务器上的临时ID
@@ -31,6 +32,7 @@ typedef struct tagOnlineFriend
     }
 }OnlineFriend;
 
+//消息小分块
 typedef struct tagMessageDebris
 {
     char type;  //是否为表情，0文字，1表情
@@ -43,6 +45,7 @@ typedef struct tagMessageDebris
     }
 }MessageDebris;
 
+//消息内容
 typedef struct tagMessageUnit
 {
     unsigned int debris_num;
@@ -60,6 +63,7 @@ typedef struct tagMessageUnit
 
 }MessageUnit;
 
+//消息结构体，C++就是麻烦
 typedef struct tagMessage
 {
     uint64_t send_uin;      //发送消息的用户临时ID
@@ -77,9 +81,24 @@ typedef struct tagMessage
     }
 }Message;
 
+typedef struct tagSumaryInfo
+{
+    int Last5minFriendMsgCnt;
+    int Last5minGroupMsgCnt;
+    int Last5minDiscuMsgCnt;
+
+    time_t LastSumaryTime;
+    
+    tagSumaryInfo()
+    {
+        memset(this, 0x0, sizeof(tagSumaryInfo));
+    }
+}SumaryInfo;
+
 class CBot
 {
 
+//libcurl回调函数
 friend int Callback4Default(CBot* p, const string& strHeader, const string& strResult);
 friend int Callback4VerifyLogin(CBot* p, const string& strHeader, const string& strResult);
 friend int Callback4GetScanState(CBot* p, const string& strHeader, const string& strResult);
@@ -191,21 +210,36 @@ private:
 
     //libcurl句柄
     CURL* m_handle;
+    
     //http 头部
     struct curl_slist* m_pHeaders;
+    
+    //http response code
     int m_HttpStatus;
+
+    //http connect timeout
+    int m_ConnTimeOut;
+    
+    //http req timeout
+    int m_ReqTimeOut;
+    
     //http cookie信息
-    map<std::string, string> m_mapCookie;
+    map<std::string, string> m_mapSvrData;
+    
     //FetchCookiePT函数使用的一个url，从GetScanState函数获得
     std::string m_strUrl;
     
     //在线好友列表状态
     map<uint64_t, OnlineFriend> m_mapOnlineFriend;
 
+    //mysql api
     CMySQL m_mysql;
     
     //临时存储消息用的
     Message m_message;
+
+    //统计信息
+    SumaryInfo m_SumaryInfo;
 };
 
 

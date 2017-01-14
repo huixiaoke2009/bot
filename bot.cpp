@@ -179,17 +179,17 @@ static void parser_ptuicb(const string& str, vector<string>& vct)
 
 inline int Callback4Default(CBot* p, const string& strHeader, const string& strResult)
 {
-    printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+    printf("########################### head content begin ###########################\n");
     printf("strHeader=%s\n", strHeader.c_str());
     printf("strResult=%s\n", strResult.c_str());
-    printf("##############################\n");
+    printf("########################### head content end #############################\n");
     
     int HttpStatus = p->GetHttpStatus();
     if(HttpStatus != 200 && HttpStatus != 302)
     {
         printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
         printf("Http Status is illeage, %d\n", HttpStatus);
-        printf("##############################\n");
+        printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
         return -1;
     }
     
@@ -199,17 +199,17 @@ inline int Callback4Default(CBot* p, const string& strHeader, const string& strR
 
 inline int Callback4VerifyLogin(CBot* p, const string& strHeader, const string& strResult)
 {
-    printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
-    //printf("strHeader=%s\n", strHeader.c_str());
+    printf("########################### head content begin ###########################\n");
+    printf("strHeader=%s\n", strHeader.c_str());
     printf("strResult=%s\n", strResult.c_str());
-    printf("##############################\n");
+    printf("########################### head content end #############################\n");
     
     int HttpStatus = p->GetHttpStatus();
     if(HttpStatus != 200)
     {
         printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
         printf("Http Status is illeage, %d\n", HttpStatus);
-        printf("##############################\n");
+        printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
         return -1;
     }
 
@@ -245,17 +245,17 @@ inline int Callback4VerifyLogin(CBot* p, const string& strHeader, const string& 
 
 inline int Callback4GetScanState(CBot* p, const string& strHeader, const string& strResult)
 {
-    printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+    printf("########################### head content begin ###########################\n");
     printf("strHeader=%s\n", strHeader.c_str());
     printf("strResult=%s\n", strResult.c_str());
-    printf("##############################\n");
+    printf("########################### head content end #############################\n");
 
     int HttpStatus = p->GetHttpStatus();
     if(HttpStatus != 200)
     {
         printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
         printf("Http Status is illeage, %d\n", HttpStatus);
-        printf("##############################\n");
+        printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
         return -1;
     }
 
@@ -298,17 +298,17 @@ inline int Callback4GetScanState(CBot* p, const string& strHeader, const string&
 
 inline int Callback4FetchCookieVF(CBot* p, const string& strHeader, const string& strResult)
 {
-    printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+    printf("########################### head content begin ###########################\n");
     printf("strHeader=%s\n", strHeader.c_str());
     printf("strResult=%s\n", strResult.c_str());
-    printf("##############################\n");
+    printf("########################### head content end #############################\n");
 
     int HttpStatus = p->GetHttpStatus();
     if(HttpStatus != 200)
     {
         printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
         printf("Http Status is illeage, %d\n", HttpStatus);
-        printf("##############################\n");
+        printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
         return -1;
     }
     
@@ -326,24 +326,24 @@ inline int Callback4FetchCookieVF(CBot* p, const string& strHeader, const string
         return -1;
     }
     
-    p->m_mapCookie["vfwebqq"] = root["result"]["vfwebqq"].asString();
+    p->m_mapSvrData["vfwebqq"] = root["result"]["vfwebqq"].asString();
     
     return 0;
 }
 
 inline int Callback4FetchCookiePN(CBot* p, const string& strHeader, const string& strResult)
 {
-    printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+    printf("########################### head content begin ###########################\n");
     printf("strHeader=%s\n", strHeader.c_str());
     printf("strResult=%s\n", strResult.c_str());
-    printf("##############################\n");
+    printf("########################### head content end #############################\n");
     
     int HttpStatus = p->GetHttpStatus();
     if(HttpStatus != 200)
     {
         printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
         printf("Http Status is illeage, %d\n", HttpStatus);
-        printf("##############################\n");
+        printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
         return -1;
     }
 
@@ -361,8 +361,8 @@ inline int Callback4FetchCookiePN(CBot* p, const string& strHeader, const string
         return -1;
     }
 
-    p->m_mapCookie["psessionid"] = root["result"]["psessionid"].asString();
-    p->m_mapCookie["uin"] = root["result"]["uin"].asString();
+    p->m_mapSvrData["psessionid"] = root["result"]["psessionid"].asString();
+    p->m_mapSvrData["uin"] = root["result"]["uin"].asString();
     
     return 0;
 }
@@ -370,17 +370,17 @@ inline int Callback4FetchCookiePN(CBot* p, const string& strHeader, const string
 
 inline int Callback4GetQQNumByUin(CBot* p, const string& strHeader, const string& strResult)
 {
-    printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+    printf("########################### head content begin ###########################\n");
     printf("strHeader=%s\n", strHeader.c_str());
     printf("strResult=%s\n", strResult.c_str());
-    printf("##############################\n");
+    printf("########################### head content end #############################\n");
     
     int HttpStatus = p->GetHttpStatus();
     if(HttpStatus != 200)
     {
         printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
         printf("Http Status is illeage, %d\n", HttpStatus);
-        printf("##############################\n");
+        printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
         return -1;
     }
 
@@ -414,17 +414,17 @@ inline int Callback4GetQQNumByUin(CBot* p, const string& strHeader, const string
 
 inline int Callback4FetchMessage(CBot* p, const string& strHeader, const string& strResult)
 {
-    printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+    printf("########################### head content begin ###########################\n");
     printf("strHeader=%s\n", strHeader.c_str());
     printf("strResult=%s\n", strResult.c_str());
-    printf("##############################\n");
+    printf("########################### head content end #############################\n");
     
     int HttpStatus = p->GetHttpStatus();
     if(HttpStatus != 200 && HttpStatus != 302)
     {
         printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
         printf("Http Status is illeage, %d\n", HttpStatus);
-        printf("##############################\n");
+        printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
         return -1;
     }
 
@@ -492,13 +492,13 @@ inline int Callback4FetchMessage(CBot* p, const string& strHeader, const string&
 
 
 
-
-
 CBot::CBot()
 {
     m_handle = NULL;
     m_pHeaders = NULL;
     m_HttpStatus = 0;
+    m_ConnTimeOut = 30;
+    m_ReqTimeOut = 30;
 }
 
 CBot::~CBot()
@@ -523,17 +523,17 @@ int CBot::Init()
     Ret = m_mysql.Connect(MYSQLDB_IP, MYSQLDB_USER, MYSQLDB_PASSWD, MYSQLDB_DBNAME, MYSQLDB_PORT);
     if(Ret != 0)
     {
-        printf("mysql connect failed, Ret=%d", Ret);
+        printf("mysql connect failed, Ret=%d\n", Ret);
         return -1;
     }
+
+    printf("mysql connect success\n");
     
     return 0;
 }
 
 int CBot::Get(const char* pUrl, const map<string,string>& mapParam, fnc_callback_t func, const char* pRerfer)
 {
-    printf("Get begin ...\n");
-    
     if(!CreateSession())
     {
         return -1;
@@ -562,7 +562,7 @@ int CBot::Get(const char* pUrl, const map<string,string>& mapParam, fnc_callback
         }
     }
 
-    printf("url=%s\n", strUrl.c_str());
+    printf("http get, url=%s\n", strUrl.c_str());
     
     CURLcode CURLRet = CURLE_OK;
     
@@ -601,10 +601,10 @@ int CBot::Get(const char* pUrl, const map<string,string>& mapParam, fnc_callback
     curl_easy_setopt(m_handle, CURLOPT_WRITEDATA, (void *)&strWriteRsp);
     
     //设置连接等待时间
-    curl_easy_setopt(m_handle, CURLOPT_CONNECTTIMEOUT, 30);
+    curl_easy_setopt(m_handle, CURLOPT_CONNECTTIMEOUT, m_ConnTimeOut);
     
     //设置传输时间
-    curl_easy_setopt(m_handle, CURLOPT_TIMEOUT, 30);
+    curl_easy_setopt(m_handle, CURLOPT_TIMEOUT, m_ReqTimeOut);
 
     //设置cookie
     SetHttpCookie();
@@ -629,8 +629,6 @@ int CBot::Get(const char* pUrl, const map<string,string>& mapParam, fnc_callback
     {
         Ret = func(this, strHeaderRsp, strWriteRsp);
     }
-    
-    printf("Get end ...\n");
     
     return Ret;
 }
@@ -662,9 +660,7 @@ int CBot::Post(const char* pUrl, const map<string,string>& mapParam, fnc_callbac
 
 
 int CBot::Post(const char* pUrl, const char* pParam, fnc_callback_t func, const char* pRerfer)
-{
-    printf("Post begin ...\n");
-    
+{   
     if(!CreateSession())
     {
         return -1;
@@ -694,7 +690,8 @@ int CBot::Post(const char* pUrl, const char* pParam, fnc_callback_t func, const 
     //设置POST参数
     if(pParam)
     {
-        printf("post data:%s\n", pParam);
+        printf("http post, url=%s\n", pUrl);
+        printf("http data, data=%s\n", pParam);
         curl_easy_setopt(m_handle, CURLOPT_POSTFIELDS, pParam); 
     }
     
@@ -718,10 +715,10 @@ int CBot::Post(const char* pUrl, const char* pParam, fnc_callback_t func, const 
     
     
     //设置连接等待时间
-    curl_easy_setopt(m_handle, CURLOPT_CONNECTTIMEOUT, 30);
+    curl_easy_setopt(m_handle, CURLOPT_CONNECTTIMEOUT, m_ConnTimeOut);
     
     //设置传输时间
-    curl_easy_setopt(m_handle, CURLOPT_TIMEOUT, 30);
+    curl_easy_setopt(m_handle, CURLOPT_TIMEOUT, m_ReqTimeOut);
 
     //设置cookie
     SetHttpCookie();
@@ -747,16 +744,12 @@ int CBot::Post(const char* pUrl, const char* pParam, fnc_callback_t func, const 
         Ret = func(this, strHeaderRsp, strWriteRsp);
     }
 
-    printf("Post end ...\n");
-    
     return Ret;
 }
 
 
 int CBot::Download2File(const char* pUrl, const char* file_path, const map<string,string>& mapParam)
 {
-    printf("Download2File begin ...\n");
-    
     if(!CreateSession())
     {
         return -1;
@@ -791,8 +784,6 @@ int CBot::Download2File(const char* pUrl, const char* file_path, const map<strin
             break;
         }
     }
-
-    printf("url=%s\n", strUrl.c_str());
     
     CURLcode CURLRet = CURLE_OK;
     
@@ -824,10 +815,10 @@ int CBot::Download2File(const char* pUrl, const char* file_path, const map<strin
     curl_easy_setopt(m_handle, CURLOPT_WRITEDATA, (void *)outfile);
     
     //设置连接等待时间
-    curl_easy_setopt(m_handle, CURLOPT_CONNECTTIMEOUT, 30);
+    curl_easy_setopt(m_handle, CURLOPT_CONNECTTIMEOUT, m_ConnTimeOut);
     
     //设置传输时间
-    curl_easy_setopt(m_handle, CURLOPT_TIMEOUT, 30);
+    curl_easy_setopt(m_handle, CURLOPT_TIMEOUT, m_ReqTimeOut);
 
     //设置cookie
     SetHttpCookie();
@@ -842,47 +833,37 @@ int CBot::Download2File(const char* pUrl, const char* file_path, const map<strin
     
     fclose(outfile);
     
-    printf("file %s download ok\n", file_path);
-    
     //保存cookie
     SaveHttpCookie();
     
     FinishSession();
-    
-    printf("Download2File end ...\n");
     
     return 0;
 }
 
 void CBot::SetHttpHeader()
 {
-    printf("SetHttpHeader begin ...\n");
-
     m_pHeaders = curl_slist_append(m_pHeaders, "Content-Type: application/x-www-form-urlencoded; charset=UTF-8");
     m_pHeaders = curl_slist_append(m_pHeaders, "Accept-Language: zh-CN,zh;q=0.8");
     m_pHeaders = curl_slist_append(m_pHeaders, "Accept: */*");
     m_pHeaders = curl_slist_append(m_pHeaders, "Connection: Keep-Alive");  
     m_pHeaders = curl_slist_append(m_pHeaders, "User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.71 Safari/537.36");
     curl_easy_setopt(m_handle, CURLOPT_HTTPHEADER, m_pHeaders);
-    
-    printf("SetHttpHeader end ...\n");
 }
 
 void CBot::SetHttpCookie()
-{
-    printf("SetHttpCookie begin ...\n");
-    
+{    
     CURLcode CURLRet = CURLE_OK;
 
     //会使curl在调用curl_easy_cleanup的时候把cookie保存到指定的文件中
     //m_bKeepAlive为true的话，这里相当于没用，仅激活cookie功能
     CURLRet = curl_easy_setopt(m_handle, CURLOPT_COOKIEJAR, COOKIEPATH);
 
-    map<string,string>::iterator iter = m_mapCookie.begin();
-    for(; iter != m_mapCookie.end(); iter++)
+    /*
+    map<string,string>::iterator iter = m_mapSvrData.begin();
+    for(; iter != m_mapSvrData.end(); iter++)
     {
         //会把指定的cookie字符串列表加入easy handle维护的cookie列表中
-        /*
         #define SEP  "\t"  // Tab separates the fields
         char *my_cookie =
         "example.com"    //Hostname
@@ -892,7 +873,7 @@ void CBot::SetHttpCookie()
         SEP "0"          //Expiry in epoch time format. 0 == Session 
         SEP "foo"       //Name
         SEP "bar";       //Value
-        */
+        
         //printf("\t%s=%s\n", iter->first.c_str(), iter->second.c_str());
         //curl_easy_setopt(m_handle, CURLOPT_COOKIELIST, iter->second.c_str());
 
@@ -901,18 +882,14 @@ void CBot::SetHttpCookie()
         //snprintf(buff, sizeof(buff), "%s=%s", iter->first.c_str(), iter->second.c_str());
         //curl_easy_setopt(m_handle, CURLOPT_COOKIE, buff);
     }
-
+    */
     
     //会使curl下一次发请求时从指定的文件中读取cookie
     CURLRet = curl_easy_setopt(m_handle, CURLOPT_COOKIEFILE, COOKIEPATH);
- 
-    printf("SetHttpCookie end ...\n");
 }
 
 void CBot::SaveHttpCookie()
 {
-    printf("SaveHttpCookie begin ...\n");
-    
     CURLcode CURLRet = CURLE_OK;
     struct curl_slist *cookies;
     struct curl_slist *nc;
@@ -938,8 +915,7 @@ void CBot::SaveHttpCookie()
         split(str, result, "\t");
         if(result.size() == 7)
         {
-            m_mapCookie[result[5]] = result[6];
-            //printf("\t%s=%s\n", result[5].c_str(), result[6].c_str());
+            m_mapSvrData[result[5]] = result[6];
         }
         else if(result.size() == 6)
         {
@@ -954,14 +930,10 @@ void CBot::SaveHttpCookie()
     }
     
     curl_slist_free_all(cookies);
-    
-    printf("SaveHttpCookie end ...\n");
 }
 
 int CBot::GetQR()
 {
-    printf("GetQR begin ...\n");
-    
     //获取二维码
     map<string,string> mapParam;
     
@@ -973,24 +945,18 @@ int CBot::GetQR()
     mapParam["v"] = "4";
     mapParam["t"] = "0.5689602857912557";
     
-    int Ret = Download2File(GET_QR, QRPATH, mapParam);
-    
-    printf("GetQR end ...\n");
-    
-    return Ret;
+    return Download2File(GET_QR, QRPATH, mapParam);
 }
 
 bool CBot::VerifyLogin()
 {
-    printf("VerifyLogin begin ...\n");
-
     bool flag = false;
-    if (m_mapCookie.find("psessionid") != m_mapCookie.end() && m_mapCookie.find("vfwebqq") != m_mapCookie.end())
+    if (m_mapSvrData.find("psessionid") != m_mapSvrData.end() && m_mapSvrData.find("vfwebqq") != m_mapSvrData.end())
     {
         map<string,string> mapParam;
-        mapParam["vfwebqq"] = m_mapCookie["vfwebqq"];
+        mapParam["vfwebqq"] = m_mapSvrData["vfwebqq"];
         mapParam["clientid"] = "53999199";
-        mapParam["psessionid"] = m_mapCookie["psessionid"];
+        mapParam["psessionid"] = m_mapSvrData["psessionid"];
         mapParam["t"] = "0.1";
         
         if(Get(GET_ONLINE, mapParam, Callback4VerifyLogin, REFERER_OL) == 0)
@@ -1011,15 +977,11 @@ bool CBot::VerifyLogin()
         flag = false;
     }
     
-    printf("VerifyLogin end ...\n");
-    
     return flag;
 }
 
 int CBot::GetScanState()
 {
-    printf("GetScanState end ...\n");
-    
     map<string,string> mapParam;
     
     mapParam["webqq_type"] = "10";
@@ -1048,44 +1010,31 @@ int CBot::GetScanState()
         sleep(2);
     }
 
-    printf("GetScanState end ...\n");
-    
     return 0;
 }
 
 int CBot::FetchCookiePT()
 {
-    printf("FetchCookiePT begin ...\n");
     map<string, string> mapParam;
-    Get(m_strUrl.c_str(), mapParam, Callback4Default, REFERER_PT);
-    printf("FetchCookiePT end ...\n");
-    return 0;
+    return Get(m_strUrl.c_str(), mapParam, Callback4Default, REFERER_PT);
 }
 
 int CBot::FetchCookieVF()
 {
-    printf("FetchCookieVF begin ...\n");
-    
     map<string, string> mapParam;
-    mapParam["ptwebqq"] = m_mapCookie["ptwebqq"];
+    mapParam["ptwebqq"] = m_mapSvrData["ptwebqq"];
     mapParam["clientid"] = "53999199";
     mapParam["psessionid"] = "";
     mapParam["t"] = "0.1";
     
-    int Ret = Get(WEBQQ_VERIFY, mapParam, Callback4FetchCookieVF, REFERER_VF);
-    
-    printf("FetchCookieVF end ...\n");
-    
-    return Ret;
+    return Get(WEBQQ_VERIFY, mapParam, Callback4FetchCookieVF, REFERER_VF);
 }
 
 int CBot::FetchCookiePN()
 {
-    printf("FetchCookiePN begin ...\n");
-
     Json::Value req;
     Json::FastWriter writer;
-    req["ptwebqq"] = m_mapCookie["ptwebqq"];
+    req["ptwebqq"] = m_mapSvrData["ptwebqq"];
     req["clientid"] = 53999199;
     req["psessionid"] = "";
     req["status"] = "online";
@@ -1093,11 +1042,7 @@ int CBot::FetchCookiePN()
     map<string, string> mapParam;
     mapParam["r"] = writer.write(req);
     
-    int Ret = Post(FETCH_PN, mapParam, Callback4FetchCookiePN, REFERER_PN);
-    
-    printf("FetchCookiePN end ...\n");
-    
-    return Ret;
+    return Post(FETCH_PN, mapParam, Callback4FetchCookiePN, REFERER_PN);
 }
 
 int CBot::ParserSelfCookieFile()
@@ -1123,7 +1068,7 @@ int CBot::ParserSelfCookieFile()
             split(str, result, "\t");
             if(result.size() == 2)
             {
-                m_mapCookie[result[0]] = result[1];
+                m_mapSvrData[result[0]] = result[1];
                 printf("\t%s=%s\n", result[0].c_str(), result[1].c_str());
             }
             else
@@ -1151,8 +1096,8 @@ int CBot::SaveSelfCookieFile()
         return 0;
     }
 
-    map<string,string>::iterator iter = m_mapCookie.begin();
-    for(; iter != m_mapCookie.end(); iter++)
+    map<string,string>::iterator iter = m_mapSvrData.begin();
+    for(; iter != m_mapSvrData.end(); iter++)
     {
         char buff[10240] = {0};
         snprintf(buff, sizeof(buff), "%s\t%s\n", iter->first.c_str(), iter->second.c_str());
@@ -1180,8 +1125,6 @@ int CBot::SetHttpStatus()
        return -1;
     }
 
-    //printf("HttpStatus=%d\n", HttpStatus);
-
     return 0;
 }
 
@@ -1189,57 +1132,42 @@ int CBot::GetUserFriend()
 {
     Json::Value req;
     Json::FastWriter writer;
-    req["psessionid"] = m_mapCookie["psessionid"];
+    req["psessionid"] = m_mapSvrData["psessionid"];
     req["clientid"] = 53999199;
 
     map<string, string> mapParam;
     mapParam["r"] = writer.write(req);
-
     
-    Post(GET_USER_FRIEND, mapParam, Callback4Default, REFERER_GET_USER_FRIEND);
-
-    return 0;
+    return Post(GET_USER_FRIEND, mapParam, Callback4Default, REFERER_GET_USER_FRIEND);
 }
 
 int CBot::GetQQNumByUin(uint64_t uin, uint64_t& qqnum)
 {
-    printf("GetQQNumByUin begin ...\n");
-
     char buff[32] = {0};
     snprintf(buff, sizeof(buff), "%ld", uin);
     map<string, string> mapParam;
     mapParam["tuin"] = buff;
     mapParam["type"] = "1";
-    mapParam["vfwebqq"] = m_mapCookie["vfwebqq"];
+    mapParam["vfwebqq"] = m_mapSvrData["vfwebqq"];
     mapParam["t"] = "0.1";
 
-    int Ret = Get(GET_QQNUM_BY_UIN, mapParam, Callback4GetQQNumByUin, REFERER_GET_QQNUM_BY_UIN);
-
-    printf("GetQQNumByUin end ...\n");
-    
-    return Ret;
+    return Get(GET_QQNUM_BY_UIN, mapParam, Callback4GetQQNumByUin, REFERER_GET_QQNUM_BY_UIN);
 }
 
 int CBot::FetchMessage()
 {
-    printf("FetchMessage begin ...\n");
-
     Json::Value req;
     Json::FastWriter writer;
-    req["ptwebqq"] = m_mapCookie["ptwebqq"];
+    req["ptwebqq"] = m_mapSvrData["ptwebqq"];
     req["clientid"] = 53999199;
-    req["psessionid"] = m_mapCookie["psessionid"];
+    req["psessionid"] = m_mapSvrData["psessionid"];
     req["key"] = "";
 
     map<string, string> mapParam;
     mapParam["r"] = writer.write(req);
 
     memset(&m_message, 0x0, sizeof(m_message));
-    int Ret = Post(FETCH_MSG, mapParam, Callback4FetchMessage, REFERER_FETCH_MSG);
-    
-    printf("FetchMessage end ...\n");
-    
-    return Ret;
+    return Post(FETCH_MSG, mapParam, Callback4FetchMessage, REFERER_FETCH_MSG);
 }
 
 //下面四个函数是发送好友消息
@@ -1329,8 +1257,6 @@ int CBot::SendDiscuMsgUnitByUin(uint64_t uin, const MessageUnit& o)
 
 int CBot::SendMsg(uint64_t uin, const char* message, int type)
 {
-    printf("SendMsg begin ...\n");
-            
     Json::Value req;
     Json::FastWriter writer;
     
@@ -1370,7 +1296,7 @@ int CBot::SendMsg(uint64_t uin, const char* message, int type)
     req["clientid"] = 53999199;
     req["face"] = 522;
     req["msg_id"] = time(NULL);
-    req["psessionid"] = m_mapCookie["psessionid"];
+    req["psessionid"] = m_mapSvrData["psessionid"];
     req["content"] = writer.write(content);
 
     map<string, string> mapParam;
@@ -1390,16 +1316,12 @@ int CBot::SendMsg(uint64_t uin, const char* message, int type)
     {
         Ret = Post(SEND_DISCU_MSG, mapParam, Callback4Default, REFERER_SEND_DISCU_MSG);
     }
-    
-    printf("SendMsg end ...\n");
-    
+
     return Ret;
 }
 
 int CBot::SendMsgByMsgUnit(uint64_t uin, const MessageUnit& o, int type)
-{
-    printf("SendMsgByMsgUnit begin ...\n");
-            
+{       
     Json::Value req;
     Json::FastWriter writer;
     
@@ -1455,7 +1377,7 @@ int CBot::SendMsgByMsgUnit(uint64_t uin, const MessageUnit& o, int type)
     req["clientid"] = 53999199;
     req["face"] = 522;
     req["msg_id"] = time(NULL);
-    req["psessionid"] = m_mapCookie["psessionid"];
+    req["psessionid"] = m_mapSvrData["psessionid"];
     req["content"] = writer.write(content);
     printf("%s\n", writer.write(content).c_str());
 
@@ -1477,8 +1399,6 @@ int CBot::SendMsgByMsgUnit(uint64_t uin, const MessageUnit& o, int type)
         Ret = Post(SEND_DISCU_MSG, mapParam, Callback4Default, REFERER_SEND_DISCU_MSG);
     }
     
-    printf("SendMsgByMsgUnit end ...\n");
-    
     return Ret;
 }
 
@@ -1496,7 +1416,6 @@ int CBot::IsCommand(const MessageUnit& o, MessageUnit& oKey, MessageUnit& oValue
     if(str[0]=='#' && str[4]=='#')
     {
         string strCmd = str.substr(1, 3);
-        printf("strCmd=%s\n", strCmd.c_str());
         if(strCmd == "add")
         {
             CmdType = 1;
@@ -1518,14 +1437,11 @@ int CBot::IsCommand(const MessageUnit& o, MessageUnit& oKey, MessageUnit& oValue
             {
                 str2 = o.debris[i].buff;
             }
-
-            printf("str2=%s\n", str2.c_str());
             
             std::size_t found = str2.find('#');
             if(!isFindKey && found != string::npos)
             {
                 string str3 = str2.substr(0, found);
-                printf("str3=%s\n", str3.c_str());
                 if(str3.c_str()[0] != '\0')
                 {
                     snprintf(oKey.debris[oKey.debris_num].buff, sizeof(oKey.debris[oKey.debris_num].buff), "%s", str3.c_str());
@@ -1535,7 +1451,6 @@ int CBot::IsCommand(const MessageUnit& o, MessageUnit& oKey, MessageUnit& oValue
                 }
 
                 string str4 = str2.substr(found+1);
-                printf("str4=%s\n", str4.c_str());
                 if(str4.c_str()[0] != '\0')
                 {
                     snprintf(oValue.debris[oValue.debris_num].buff, sizeof(oValue.debris[oValue.debris_num].buff), "%s", str4.c_str());
@@ -1723,12 +1638,13 @@ int CBot::Run()
 
     SaveSelfCookieFile();
 
-    sleep(3);
     while(true)
     {
         try
         {
-            usleep(500000);
+            //这里计算一下要sleep多久
+            //SleepWhenNeed();
+            sleep(3);
             if(FetchMessage() == 0)
             {
                 MessageUnit oKey;

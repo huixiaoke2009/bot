@@ -59,4 +59,13 @@ const char* MYSQLDB_PASSWD = "bhgame@123";
 const char* MYSQLDB_DBNAME = "robot";
 const unsigned short int MYSQLDB_PORT = 3306;
 const char* MYSQLDB_CHAT_TABLE = "chat";
+
+/*
+CREATE TABLE `chat` (
+  `id` int unsigned NOT NULL,
+  `key` text COLLATE utf8_bin NOT NULL,
+  `value` text COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin
+*/
 #endif
