@@ -19,25 +19,34 @@ class CBot;
 typedef int (*fnc_callback_t)(CBot* p, const string& str1, const string& str2);
 
 //好友信息
-typedef struct tagOnlineFriend
+typedef struct tagFriendInfo
 {
-    uint64_t uin;       //服务器上的临时ID
-    uint64_t qqnum;     //QQ号
-    int client_type;    //客户端类型
-    char status[64];    //状态
+    uint64_t uin;           //服务器上的临时ID
+    uint64_t qqnum;         //QQ号
+    char nick[1024];        //昵称
+    char markname[1024];    //备注
+    int groupindex;         //好友分组序号
+    char groupname[1024];   //分组名称
+    char status[64];        //在线状态
+    int is_vip;             //是否为vip
+    int vip_level;          //vip等级，如果不是vip，则为0
+    int face;               //头像ID
+    int client_type;        //客户端类型
     
-    tagOnlineFriend()
+    tagFriendInfo()
     {
-        memset(this, 0x0, sizeof(tagOnlineFriend));
+        memset(this, 0x0, sizeof(tagFriendInfo));
     }
-}OnlineFriend;
+
+    
+}FriendInfo;
 
 //消息小分块
 typedef struct tagMessageDebris
 {
-    char type;  //是否为表情，0文字，1表情
-    char buff[10240]; //类型
-    int code;      //编码
+    char type;          //是否为表情，0文字，1表情
+    char buff[10240];   //类型
+    int code;           //编码
 
     tagMessageDebris()
     {
@@ -83,11 +92,7 @@ typedef struct tagMessage
 
 typedef struct tagSumaryInfo
 {
-    int Last5minFriendMsgCnt;
-    int Last5minGroupMsgCnt;
-    int Last5minDiscuMsgCnt;
-
-    time_t LastSumaryTime;
+    time_t LastRcvMsgTime;
     
     tagSumaryInfo()
     {
@@ -100,10 +105,12 @@ class CBot
 
 //libcurl回调函数
 friend int Callback4Default(CBot* p, const string& strHeader, const string& strResult);
-friend int Callback4VerifyLogin(CBot* p, const string& strHeader, const string& strResult);
 friend int Callback4GetScanState(CBot* p, const string& strHeader, const string& strResult);
+friend int Callback4FetchCookiePT(CBot* p, const string& strHeader, const string& strResult);
 friend int Callback4FetchCookieVF(CBot* p, const string& strHeader, const string& strResult);
 friend int Callback4FetchCookiePN(CBot* p, const string& strHeader, const string& strResult);
+friend int Callback4GetUserFriend(CBot* p, const string& strHeader, const string& strResult);
+friend int Callback4GetOnlineFriend(CBot* p, const string& strHeader, const string& strResult);
 friend int Callback4GetQQNumByUin(CBot* p, const string& strHeader, const string& strResult);
 friend int Callback4FetchMessage(CBot* p, const string& strHeader, const string& strResult);
 
@@ -168,9 +175,12 @@ private:
     int FetchCookieVF();
     //获取鉴权参数uin和psessionid
     int FetchCookiePN();
-
-    //获取在线好友列表
+    //登录后拉取好友信息
+    int CheckLoginInfo();
+    //获取好友列表
     int GetUserFriend();
+    //获取好友在线状态
+    int GetOnlineFriend();
     //由uin拿到QQ号
     int GetQQNumByUin(uint64_t uin, uint64_t& qqnum);
     
@@ -206,6 +216,7 @@ private:
     int String2MessageUnit(const string& s, MessageUnit& o);
     int MessageUnit2String(const MessageUnit& o, string& s);
     int MessageUnit2String2(const MessageUnit& o, string& s);
+    
 private:
 
     //libcurl句柄
@@ -230,7 +241,7 @@ private:
     std::string m_strUrl;
     
     //在线好友列表状态
-    map<uint64_t, OnlineFriend> m_mapOnlineFriend;
+    map<uint64_t, FriendInfo> m_mapFriendInfo;
 
     //mysql api
     CMySQL m_mysql;

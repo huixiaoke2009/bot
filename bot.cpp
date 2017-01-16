@@ -176,28 +176,51 @@ static void parser_ptuicb(const string& str, vector<string>& vct)
     }
 }
 
-
-inline int Callback4Default(CBot* p, const string& strHeader, const string& strResult)
+char* friends_hash(uint64_t uin, const char* ptwebqq)
 {
-    printf("########################### head content begin ###########################\n");
-    printf("strHeader=%s\n", strHeader.c_str());
-    printf("strResult=%s\n", strResult.c_str());
-    printf("########################### head content end #############################\n");
+    char N[4] = {0, 0, 0, 0};
+    char V[4] = {0, 0, 0, 0};
+    char U[8] = {0, 0, 0, 0, 0, 0, 0, 0};
     
-    int HttpStatus = p->GetHttpStatus();
-    if(HttpStatus != 200 && HttpStatus != 302)
+    const char* k = ptwebqq;
+
+    for(unsigned int x = 0; x < strlen(k); x++)
     {
-        printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
-        printf("Http Status is illeage, %d\n", HttpStatus);
-        printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
-        return -1;
+        N[x%4] ^= k[x];
     }
     
-    return 0;
+    V[0] = ((uin >> 24) & 255) ^ 69;
+    V[1] = ((uin >> 16) & 255) ^ 67;
+    V[2] = ((uin >> 8) & 255) ^ 79;
+    V[3] = (uin & 255) ^ 75;
+    
+    for(int x = 0; x < 8; x++)
+    {
+        if(x%2 == 0)
+        {
+            U[x] = N[x>>1];
+        }
+        else
+        {
+            U[x] = V[x>>1];
+        }
+    }
+    
+    static char result[17] = {0};
+    char n[16] = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
+    
+    for(int i = 0, j = 0; i < 8; i++, j = j + 2)
+    {
+        char x = U[i];
+        result[j] = n[x>>4&15];
+        result[j+1] = n[x&15];
+    }
+    
+    return result;
 }
 
 
-inline int Callback4VerifyLogin(CBot* p, const string& strHeader, const string& strResult)
+inline int Callback4Default(CBot* p, const string& strHeader, const string& strResult)
 {
     printf("########################### head content begin ###########################\n");
     printf("strHeader=%s\n", strHeader.c_str());
@@ -211,33 +234,6 @@ inline int Callback4VerifyLogin(CBot* p, const string& strHeader, const string& 
         printf("Http Status is illeage, %d\n", HttpStatus);
         printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
         return -1;
-    }
-
-    Json::Reader reader;
-    Json::Value root;
-    if (!reader.parse(strResult, root, false))
-    {
-        printf("json parse failed\n");
-        return -1;
-    }
-
-    int retcode = root["retcode"].asInt();
-    if(retcode != 0)
-    {
-        return -1;
-    }
-
-    //{"result":[{"client_type":1,"status":"online","uin":1786202149}],"retcode":0}
-    
-    int friend_num = root["result"].size();
-    for(int i = 0; i < friend_num; i++)
-    {
-        OnlineFriend o;
-        o.uin = root["result"][i]["uin"].asDouble();
-        o.client_type = root["result"][i]["client_type"].asInt();
-        snprintf(o.status, sizeof(o.status), "%s", root["result"][i]["status"].asString().c_str());
-
-        p->m_mapOnlineFriend[o.uin] = o;
     }
     
     return 0;
@@ -295,6 +291,26 @@ inline int Callback4GetScanState(CBot* p, const string& strHeader, const string&
 
     return -1;
 }
+
+inline int Callback4FetchCookiePT(CBot* p, const string& strHeader, const string& strResult)
+{
+    printf("########################### head content begin ###########################\n");
+    printf("strHeader=%s\n", strHeader.c_str());
+    printf("strResult=%s\n", strResult.c_str());
+    printf("########################### head content end #############################\n");
+    
+    int HttpStatus = p->GetHttpStatus();
+    if(HttpStatus != 200 && HttpStatus != 302)
+    {
+        printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+        printf("Http Status is illeage, %d\n", HttpStatus);
+        printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+        return -1;
+    }
+    
+    return 0;
+}
+
 
 inline int Callback4FetchCookieVF(CBot* p, const string& strHeader, const string& strResult)
 {
@@ -363,9 +379,182 @@ inline int Callback4FetchCookiePN(CBot* p, const string& strHeader, const string
 
     p->m_mapSvrData["psessionid"] = root["result"]["psessionid"].asString();
     p->m_mapSvrData["uin"] = root["result"]["uin"].asString();
+
+    //因为后面这个值会被cookie的覆盖，所以这里先用一个自己的变量存着
+    p->m_mapSvrData["ori_uin"] = root["result"]["uin"].asString();
+
+    return 0;
+}
+
+inline int Callback4GetUserFriend(CBot* p, const string& strHeader, const string& strResult)
+{
+    printf("########################### head content begin ###########################\n");
+    printf("strHeader=%s\n", strHeader.c_str());
+    printf("strResult=%s\n", strResult.c_str());
+    printf("########################### head content end #############################\n");
+    
+    int HttpStatus = p->GetHttpStatus();
+    if(HttpStatus != 200)
+    {
+        printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+        printf("Http Status is illeage, %d\n", HttpStatus);
+        printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+        return -1;
+    }
+
+    Json::Reader reader;
+    Json::Value root;
+    if (!reader.parse(strResult, root, false))
+    {
+        printf("json parse failed\n");
+        return -1;
+    }
+
+    int retcode = root["retcode"].asInt();
+    if(retcode != 0)
+    {
+        return -1;
+    }
+    
+    //{"retcode":0,"result":{
+    //"friends":[{"flag":4,"uin":47597004,"categories":1},{"flag":0,"uin":3624694000,"categories":0}],
+    //"marknames":[{"uin":3624694000,"markname":"test","type":0}],
+    //"categories":[{"index":0,"sort":1,"name":"我的好友"},{"index":1,"sort":2,"name":"喵"}],
+    //"vipinfo":[{"vip_level":3,"u":47597004,"is_vip":1},{"vip_level":0,"u":3624694000,"is_vip":0}],
+    //"info":[{"face":399,"flag":289931782,"nick":"mu","uin":47597004},{"face":603,"flag":285737536,"nick":"mama","uin":3624694000}]}
+    //}
+
+    //把所有好友写到结构中去
+    int friend_num = root["result"]["friends"].size();
+    for(int i = 0; i < friend_num; i++)
+    {
+        FriendInfo o;
+        Json::Value& tmp = root["result"]["friends"][i];
+        o.uin = tmp["uin"].asDouble();
+        o.groupindex = tmp["categories"].asInt();
+        p->m_mapFriendInfo[o.uin] = o;
+    }
+
+    //遍历所有好友，填充其他信息
+    //填充分组信息，理论上所有好友都应该有分组信息
+    map<uint64_t, FriendInfo>::iterator iter = p->m_mapFriendInfo.begin();
+    for(; iter != p->m_mapFriendInfo.end(); iter++)
+    {
+        int groupindex = iter->second.groupindex;
+        int groupsize = root["result"]["categories"].size();
+        for(int i = 0; i < groupsize; i++)
+        {
+            Json::Value& tmp = root["result"]["categories"][i];
+            if(tmp["index"].asInt() == groupindex)
+            {
+                snprintf(iter->second.groupname, sizeof(iter->second.groupname), "%s", tmp["name"].asString().c_str());
+                break;
+            }
+        }
+    }
+
+    //填充备注信息，某些好友才有备注
+    int marksize = root["result"]["marknames"].size();
+    for(int i = 0; i < marksize; i++)
+    {
+        Json::Value& tmp = root["result"]["marknames"][i];
+        uint64_t uin = tmp["uin"].asDouble();
+        map<uint64_t, FriendInfo>::iterator iter = p->m_mapFriendInfo.find(uin);
+        if(iter == p->m_mapFriendInfo.end())
+        {
+            printf("cann't find key %ld\n", uin);
+            return -1;
+        }
+
+        snprintf(iter->second.markname, sizeof(iter->second.markname), "%s", tmp["name"].asString().c_str());
+    }
+
+    //填充vip信息
+    int vipsize = root["result"]["vipinfo"].size();
+    for(int i = 0; i < vipsize; i++)
+    {
+        Json::Value& tmp = root["result"]["vipinfo"][i];
+        uint64_t uin = tmp["u"].asDouble();
+        map<uint64_t, FriendInfo>::iterator iter = p->m_mapFriendInfo.find(uin);
+        if(iter == p->m_mapFriendInfo.end())
+        {
+            printf("cann't find key %ld\n", uin);
+            return -1;
+        }
+
+        iter->second.is_vip = tmp["is_vip"].asInt();
+        iter->second.vip_level = tmp["vip_level"].asInt();
+    }
+
+    //填充其它信息
+    int infosize = root["result"]["info"].size();
+    for(int i = 0; i < infosize; i++)
+    {
+        Json::Value& tmp = root["result"]["info"][i];
+        uint64_t uin = tmp["uin"].asDouble();
+        map<uint64_t, FriendInfo>::iterator iter = p->m_mapFriendInfo.find(uin);
+        if(iter == p->m_mapFriendInfo.end())
+        {
+            printf("cann't find key %ld\n", uin);
+            return -1;
+        }
+
+        iter->second.face = tmp["face"].asInt();
+        snprintf(iter->second.nick, sizeof(iter->second.nick), "%s", tmp["nick"].asString().c_str());
+    }
     
     return 0;
 }
+
+
+inline int Callback4GetOnlineFriend(CBot* p, const string& strHeader, const string& strResult)
+{
+    printf("########################### head content begin ###########################\n");
+    printf("strHeader=%s\n", strHeader.c_str());
+    printf("strResult=%s\n", strResult.c_str());
+    printf("########################### head content end #############################\n");
+    
+    int HttpStatus = p->GetHttpStatus();
+    if(HttpStatus != 200)
+    {
+        printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+        printf("Http Status is illeage, %d\n", HttpStatus);
+        printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+        return -1;
+    }
+
+    Json::Reader reader;
+    Json::Value root;
+    if (!reader.parse(strResult, root, false))
+    {
+        printf("json parse failed\n");
+        return -1;
+    }
+
+    int retcode = root["retcode"].asInt();
+    if(retcode != 0)
+    {
+        return -1;
+    }
+
+    //{"result":[{"client_type":1,"status":"online","uin":1786202149}],"retcode":0}
+
+    int friend_num = root["result"].size();
+    for(int i = 0; i < friend_num; i++)
+    {
+        Json::Value& tmp = root["result"][i];
+        map<uint64_t, FriendInfo>::iterator iter = p->m_mapFriendInfo.find(tmp["uin"].asDouble());
+        if(iter != p->m_mapFriendInfo.end())
+        {
+            FriendInfo& o = iter->second;
+            o.client_type = tmp["client_type"].asInt();
+            snprintf(o.status, sizeof(o.status), "%s", tmp["status"].asString().c_str());
+        }
+    }
+    
+    return 0;
+}
+
 
 
 inline int Callback4GetQQNumByUin(CBot* p, const string& strHeader, const string& strResult)
@@ -399,8 +588,8 @@ inline int Callback4GetQQNumByUin(CBot* p, const string& strHeader, const string
         return -1;
     }
 
-    map<uint64_t, OnlineFriend>::iterator iter = p->m_mapOnlineFriend.begin();
-    for(; iter != p->m_mapOnlineFriend.end(); iter++)
+    map<uint64_t, FriendInfo>::iterator iter = p->m_mapFriendInfo.begin();
+    for(; iter != p->m_mapFriendInfo.end(); iter++)
     {
         if(iter->first == uint64_t(root["result"]["uin"].asDouble()))
         {
@@ -450,21 +639,22 @@ inline int Callback4FetchMessage(CBot* p, const string& strHeader, const string&
     //群消息
     //{"result":[{"poll_type":"group_message","value":{"content":[["font",{"color":"000000","name":"微软雅黑","size":10,"style":[0,0,0]}],"123"],"from_uin":858811018,"group_code":858811018,"msg_id":3373,"msg_type":0,"send_uin":1786202149,"time":1483848903,"to_uin":229845213}}],"retcode":0}
     string strMsgType = root["result"][0]["poll_type"].asString();
-    Json::Value content = root["result"][0]["value"]["content"];
+    Json::Value& content = root["result"][0]["value"]["content"];
     int size = content.size();
     for(int i = 1; i < size; i++)
     {
-        Json::Value tmp = content[i];
+        Json::Value& tmp = content[i];
+        MessageDebris& debris = p->m_message.message.debris[i-1];
         if(tmp.type() == Json::arrayValue)
         {
-            p->m_message.message.debris[i-1].type = 1;
-            snprintf(p->m_message.message.debris[i-1].buff, sizeof(p->m_message.message.debris[i-1].buff), "%s", tmp[0].asString().c_str());
-            p->m_message.message.debris[i-1].code = tmp[1].asInt();
+            debris.type = 1;
+            snprintf(debris.buff, sizeof(debris.buff), "%s", tmp[0].asString().c_str());
+            debris.code = tmp[1].asInt();
         }
         else
         {
-            p->m_message.message.debris[i-1].type = 0;
-            snprintf(p->m_message.message.debris[i-1].buff, sizeof(p->m_message.message.debris[i-1].buff), "%s", tmp.asString().c_str());
+            debris.type = 0;
+            snprintf(debris.buff, sizeof(debris.buff), "%s", tmp.asString().c_str());
         }
 
         p->m_message.message.debris_num++;
@@ -498,7 +688,7 @@ CBot::CBot()
     m_pHeaders = NULL;
     m_HttpStatus = 0;
     m_ConnTimeOut = 30;
-    m_ReqTimeOut = 30;
+    m_ReqTimeOut = 10;
 }
 
 CBot::~CBot()
@@ -950,34 +1140,21 @@ int CBot::GetQR()
 
 bool CBot::VerifyLogin()
 {
-    bool flag = false;
     if (m_mapSvrData.find("psessionid") != m_mapSvrData.end() && m_mapSvrData.find("vfwebqq") != m_mapSvrData.end())
     {
-        map<string,string> mapParam;
-        mapParam["vfwebqq"] = m_mapSvrData["vfwebqq"];
-        mapParam["clientid"] = "53999199";
-        mapParam["psessionid"] = m_mapSvrData["psessionid"];
-        mapParam["t"] = "0.1";
-        
-        if(Get(GET_ONLINE, mapParam, Callback4VerifyLogin, REFERER_OL) == 0)
+        if(CheckLoginInfo() != 0)
         {
-            flag = true;
-            map<uint64_t, OnlineFriend>::iterator iter = m_mapOnlineFriend.begin();
-            for(; iter != m_mapOnlineFriend.end(); iter++)
-            {
-                if(GetQQNumByUin(iter->first, iter->second.qqnum) != 0)
-                {
-                    flag = false;
-                }
-            }
+            return false;
         }
+
+        return true;
     }
     else
     {
-        flag = false;
+        return false;
     }
-    
-    return flag;
+
+    return false;
 }
 
 int CBot::GetScanState()
@@ -1016,7 +1193,7 @@ int CBot::GetScanState()
 int CBot::FetchCookiePT()
 {
     map<string, string> mapParam;
-    return Get(m_strUrl.c_str(), mapParam, Callback4Default, REFERER_PT);
+    return Get(m_strUrl.c_str(), mapParam, Callback4FetchCookiePT, REFERER_PT);
 }
 
 int CBot::FetchCookieVF()
@@ -1043,6 +1220,35 @@ int CBot::FetchCookiePN()
     mapParam["r"] = writer.write(req);
     
     return Post(FETCH_PN, mapParam, Callback4FetchCookiePN, REFERER_PN);
+}
+
+int CBot::CheckLoginInfo()
+{
+    //获取好友列表
+    if(GetUserFriend() != 0)
+    {
+        return -1;
+    }
+
+    //获取好友在线状态
+    if(GetOnlineFriend() != 0)
+    {
+        return -1;
+    }
+    
+    //获取QQ号
+    map<uint64_t, FriendInfo>::iterator iter = m_mapFriendInfo.begin();
+    for(; iter != m_mapFriendInfo.end(); iter++)
+    {
+        if(GetQQNumByUin(iter->first, iter->second.qqnum) != 0)
+        {
+            return -1;
+        }
+    }
+
+    SaveSelfCookieFile();
+
+    return 0;
 }
 
 int CBot::ParserSelfCookieFile()
@@ -1130,16 +1336,31 @@ int CBot::SetHttpStatus()
 
 int CBot::GetUserFriend()
 {
+    //清空FriendInfo
+    m_mapFriendInfo.clear();
+    
     Json::Value req;
     Json::FastWriter writer;
-    req["psessionid"] = m_mapSvrData["psessionid"];
-    req["clientid"] = 53999199;
+    req["vfwebqq"] = m_mapSvrData["vfwebqq"];
+    req["hash"] = friends_hash(atol(m_mapSvrData["ori_uin"].c_str()), m_mapSvrData["ptwebqq"].c_str());
 
     map<string, string> mapParam;
     mapParam["r"] = writer.write(req);
     
-    return Post(GET_USER_FRIEND, mapParam, Callback4Default, REFERER_GET_USER_FRIEND);
+    return Post(GET_USER_FRIEND, mapParam, Callback4GetUserFriend, REFERER_GET_USER_FRIEND);
 }
+
+int CBot::GetOnlineFriend()
+{
+    map<string,string> mapParam;
+    mapParam["vfwebqq"] = m_mapSvrData["vfwebqq"];
+    mapParam["clientid"] = "53999199";
+    mapParam["psessionid"] = m_mapSvrData["psessionid"];
+    mapParam["t"] = "0.1";
+
+    return Get(GET_ONLINE, mapParam, Callback4GetOnlineFriend, REFERER_OL);
+}
+
 
 int CBot::GetQQNumByUin(uint64_t uin, uint64_t& qqnum)
 {
@@ -1173,8 +1394,8 @@ int CBot::FetchMessage()
 //下面四个函数是发送好友消息
 int CBot::SendFriendMsgByQQnum(uint64_t qqnum, const char* message)
 {
-    map<uint64_t, OnlineFriend>::iterator iter = m_mapOnlineFriend.begin();
-    for(; iter != m_mapOnlineFriend.end(); iter++)
+    map<uint64_t, FriendInfo>::iterator iter = m_mapFriendInfo.begin();
+    for(; iter != m_mapFriendInfo.end(); iter++)
     {
         if(iter->second.qqnum == qqnum)
         {
@@ -1193,8 +1414,8 @@ int CBot::SendFriendMsgByUin(uint64_t uin, const char* message)
 
 int CBot::SendFriendMsgUnitByQQnum(uint64_t qqnum, const MessageUnit& o)
 {
-    map<uint64_t, OnlineFriend>::iterator iter = m_mapOnlineFriend.begin();
-    for(; iter != m_mapOnlineFriend.end(); iter++)
+    map<uint64_t, FriendInfo>::iterator iter = m_mapFriendInfo.begin();
+    for(; iter != m_mapFriendInfo.end(); iter++)
     {
         if(iter->second.qqnum == qqnum)
         {
@@ -1636,17 +1857,24 @@ int CBot::Run()
         }
     }
 
-    SaveSelfCookieFile();
-
+    time_t CheckTime = time(NULL);
     while(true)
     {
+        //每10分钟重新拉一下好友列表
+        time_t NowTime = time(NULL);
+        if(NowTime - CheckTime > 600)
+        {
+            CheckTime = NowTime;
+            CheckLoginInfo();
+        }
+        
         try
         {
             //这里计算一下要sleep多久
-            //SleepWhenNeed();
-            sleep(3);
             if(FetchMessage() == 0)
             {
+                m_SumaryInfo.LastRcvMsgTime = time(NULL);
+                
                 MessageUnit oKey;
                 MessageUnit oValue;
                 if(!IsCommand(m_message.message, oKey, oValue))

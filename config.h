@@ -39,7 +39,7 @@ const char* SEND_DISCU_MSG = "http://d1.web2.qq.com/channel/send_discu_msg2";
 const char* REFERER_SEND_DISCU_MSG = "http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2";
 
 
-//获取在线好友列表
+//获取好友列表
 const char* GET_USER_FRIEND = "http://s.web2.qq.com/api/get_user_friends2";
 const char* REFERER_GET_USER_FRIEND = "http://d.web2.qq.com/proxy.html?v=20110331002&callback=1&id=3";
 
