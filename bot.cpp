@@ -689,6 +689,7 @@ CBot::CBot()
     m_HttpStatus = 0;
     m_ConnTimeOut = 30;
     m_ReqTimeOut = 10;
+    m_bSendMsg = true;
 }
 
 CBot::~CBot()
@@ -1637,6 +1638,15 @@ int CBot::IsCommand(const MessageUnit& o, MessageUnit& oKey, MessageUnit& oValue
     if(str[0]=='#' && str[4]=='#')
     {
         string strCmd = str.substr(1, 3);
+        if(strCmd == "stp")
+        {
+            return 98;
+        }
+        else if(strCmd == "stt")
+        {
+            return 99;
+        }
+
         if(strCmd == "add")
         {
             CmdType = 1;
@@ -1877,8 +1887,14 @@ int CBot::Run()
                 
                 MessageUnit oKey;
                 MessageUnit oValue;
-                if(!IsCommand(m_message.message, oKey, oValue))
+                int CmdType = IsCommand(m_message.message, oKey, oValue);
+                if(CmdType == 0)
                 {
+                    if(!m_bSendMsg)
+                    {
+                        continue;
+                    }
+                    
                     //不是命令,去DB匹配关键字
                     string s;
                     MessageUnit2String2(m_message.message, s);
@@ -1932,10 +1948,23 @@ int CBot::Run()
                         }
                         else
                         {
-                            strKey = s1;
-                            strValue = s2;
-                            max_score = 1;
-                            break;
+                            if(max_score != 1)
+                            {
+                                strKey = s1;
+                                strValue = s2;
+                                max_score = 1;
+                            }
+                            else
+                            {
+                                if(rand()%3 == 0)
+                                {
+                                    continue;
+                                }
+
+                                strKey = s1;
+                                strValue = s2;
+                                max_score = 1;
+                            }
                         }
 
                         if(score > max_score)
@@ -1974,6 +2003,14 @@ int CBot::Run()
                         continue;
                     }
                 }
+                else if(CmdType == 98)
+                {
+                    m_bSendMsg = false;
+                }
+                else if(CmdType == 99)
+                {
+                    m_bSendMsg = true;
+                }
                 else
                 {
                     //是命令
@@ -1987,7 +2024,7 @@ int CBot::Run()
                     m_mysql.EscapeString(ValueBuff, strValue.c_str(), strValue.length());
                     
                     char sql[102400] = {0};
-                    snprintf(sql, sizeof(sql), "replace into %s (`id`,`key`,`value`) values ('%u','%s','%s')", 
+                    snprintf(sql, sizeof(sql), "insert into %s (`id`,`key`,`value`) values ('%u','%s','%s')", 
                                 MYSQLDB_CHAT_TABLE, id, strKey.c_str(), ValueBuff);
                     printf("sql=%s\n", sql);
                     Ret=m_mysql.Query(sql, strlen(sql));

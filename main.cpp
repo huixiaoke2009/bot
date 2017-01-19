@@ -6,6 +6,7 @@
 
 int main(int argc, char* argv[])
 {
+    srand(time(NULL));
     CBot carrot;
     int Ret = carrot.Init();
     if(Ret != 0)

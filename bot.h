@@ -249,6 +249,9 @@ private:
     //临时存储消息用的
     Message m_message;
 
+    //是否响应消息
+    bool m_bSendMsg;
+
     //统计信息
     SumaryInfo m_SumaryInfo;
 };
